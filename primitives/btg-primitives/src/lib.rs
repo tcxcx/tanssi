@@ -13,7 +13,7 @@ use sp_std::convert::TryFrom;
 mod carbon_credits;
 pub use carbon_credits::*;
 
-pub const FRST_TOKEN: u32 = 1;
+pub const BBB_TOKEN: u32 = 1;
 
 pub type AssetId = u32;
 

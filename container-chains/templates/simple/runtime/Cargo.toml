@@ -87,6 +87,8 @@ frame-try-runtime = { workspace = true, optional = true }
 # New pallet add-ons
 	# Substrate
 pallet-assets = { workspace = true }
+pallet-uniques = { workspace = true }
+
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -154,6 +156,7 @@ std = [
 	"tp-consensus/std",
 	"xcm-primitives/std",
 	"pallet-assets/std",
+	"pallet-uniques/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)
@@ -188,7 +191,7 @@ runtime-benchmarks = [
 	"staging-xcm-executor/runtime-benchmarks",
 	"xcm-primitives/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
-
+	"pallet-uniques/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -220,5 +223,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"pallet-assets/try-runtime",
-
+	"pallet-uniques/try-runtime",
 ]

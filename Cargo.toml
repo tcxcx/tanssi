@@ -62,6 +62,12 @@ test-relay-sproof-builder = { git = "https://github.com/moondance-labs/dancekit"
 # Dancekit (client)
 dc-orchestrator-chain-interface = { git = "https://github.com/moondance-labs/dancekit", branch = "tanssi-polkadot-v1.3.0" }
 
+# Custom pallets
+carbon-credits = { path = "pallets/carbon-credits", default-features = false }
+carbon-credits-pool = { path = "pallets/carbon-credits-pool", default-features = false }
+kyc = { path = "pallets/kyc", default-features = false }
+pallet-asset = { path = "pallets/assets", default-features = false }
+
 # Moonkit (wasm)
 nimbus-consensus = { git = "https://github.com/moondance-labs/moonkit", branch = "tanssi-polkadot-v1.3.0" }
 nimbus-primitives = { git = "https://github.com/moondance-labs/moonkit", branch = "tanssi-polkadot-v1.3.0", default-features = false }
@@ -119,9 +125,8 @@ sp-std = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tan
 sp-transaction-pool = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
 sp-trie = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
 sp-version = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
-
+pallet-uniques = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
 pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
-
 
 # Substrate (client)
 frame-benchmarking-cli = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0" }

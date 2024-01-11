@@ -206,6 +206,7 @@ fn testnet_genesis(
         transaction_payment: Default::default(),
         tx_pause: Default::default(),
         assets: Default::default(),
+
     }
 }
 
