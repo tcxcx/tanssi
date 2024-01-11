@@ -83,6 +83,10 @@ parachain-info = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-system-benchmarking = { workspace = true, optional = true }
 frame-try-runtime = { workspace = true, optional = true }
+
+# New pallet add-ons
+pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
 
@@ -148,6 +152,7 @@ std = [
 	"staging-xcm/std",
 	"tp-consensus/std",
 	"xcm-primitives/std",
+	"pallet-assets/std"
 ]
 
 # Allow to print logs details (no wasm:stripped)

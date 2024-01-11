@@ -1805,6 +1805,7 @@ dependencies = [
  "hex-literal 0.3.4",
  "log",
  "nimbus-primitives",
+ "pallet-assets",
  "pallet-async-backing",
  "pallet-author-inherent",
  "pallet-balances",
