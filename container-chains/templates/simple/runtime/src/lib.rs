@@ -39,7 +39,7 @@ use {
         parameter_types,
         traits::{
             ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains, InsideBoth,
-            InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
+            InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade, 
         },
         weights::{
             constants::{
@@ -386,8 +386,6 @@ impl pallet_transaction_payment::Config for Runtime {
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
 }
 
-
-
 // New Pallets impl added to template
 
 parameter_types! {
@@ -441,6 +439,7 @@ impl pallet_assets::Config for Runtime {
     type BenchmarkHelper = ();
     type CallbackHandle = ();
 }
+
 
 //
 
@@ -775,6 +774,8 @@ construct_runtime!(
         // Monetary stuff.
         Balances: pallet_balances = 10,
         TransactionPayment: pallet_transaction_payment = 11,
+        Assets: pallet_assets = 12,
+
 
         // ContainerChain Author Verification
         AuthoritiesNoting: pallet_cc_authorities_noting = 50,
@@ -789,8 +790,8 @@ construct_runtime!(
         RootTesting: pallet_root_testing = 100,
         AsyncBacking: pallet_async_backing::{Pallet, Storage} = 110,
 
-        // Added Pallet's to Runtime template
-        Assets: pallet_assets = 12,
+        // Governance
+
     }
 );
 

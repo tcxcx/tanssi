@@ -85,7 +85,8 @@ frame-system-benchmarking = { workspace = true, optional = true }
 frame-try-runtime = { workspace = true, optional = true }
 
 # New pallet add-ons
-pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
+	# Substrate
+pallet-assets = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -152,7 +153,7 @@ std = [
 	"staging-xcm/std",
 	"tp-consensus/std",
 	"xcm-primitives/std",
-	"pallet-assets/std"
+	"pallet-assets/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)
@@ -186,6 +187,8 @@ runtime-benchmarks = [
 	"staging-xcm-builder/runtime-benchmarks",
 	"staging-xcm-executor/runtime-benchmarks",
 	"xcm-primitives/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+
 ]
 
 try-runtime = [
@@ -216,4 +219,6 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-assets/try-runtime",
+
 ]
