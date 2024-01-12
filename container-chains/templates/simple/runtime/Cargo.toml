@@ -89,6 +89,10 @@ frame-try-runtime = { workspace = true, optional = true }
 pallet-assets = { workspace = true }
 pallet-uniques = { workspace = true }
 
+	# Custom Pallets
+pallet-carbon-credits = { workspace = true }
+pallet-carbon-credits-pool = { workspace = true }
+pallet-kyc = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -157,6 +161,9 @@ std = [
 	"xcm-primitives/std",
 	"pallet-assets/std",
 	"pallet-uniques/std",
+	"pallet-carbon-credits/std",
+	"pallet-carbon-credits-pool/std",
+	"pallet-kyc/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)
@@ -192,6 +199,8 @@ runtime-benchmarks = [
 	"xcm-primitives/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
+	"pallet-carbon-credits/runtime-benchmarks",
+
 ]
 
 try-runtime = [

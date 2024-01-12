@@ -206,7 +206,10 @@ fn testnet_genesis(
         transaction_payment: Default::default(),
         tx_pause: Default::default(),
         assets: Default::default(),
-
+        kyc_pallet: container_chain_template_simple_runtime::KYCPalletConfig {
+			members: [].to_vec().try_into().unwrap(),
+			phantom: Default::default(),
+		},
     }
 }
 

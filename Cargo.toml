@@ -63,10 +63,9 @@ test-relay-sproof-builder = { git = "https://github.com/moondance-labs/dancekit"
 dc-orchestrator-chain-interface = { git = "https://github.com/moondance-labs/dancekit", branch = "tanssi-polkadot-v1.3.0" }
 
 # Custom pallets
-carbon-credits = { path = "pallets/carbon-credits", default-features = false }
-carbon-credits-pool = { path = "pallets/carbon-credits-pool", default-features = false }
-kyc = { path = "pallets/kyc", default-features = false }
-pallet-asset = { path = "pallets/assets", default-features = false }
+pallet-carbon-credits = { path = "pallets/carbon-credits", default-features = false }
+pallet-carbon-credits-pool = { path = "pallets/carbon-credits-pool", default-features = false }
+pallet-kyc = { path = "pallets/kyc", default-features = false }
 
 # Moonkit (wasm)
 nimbus-consensus = { git = "https://github.com/moondance-labs/moonkit", branch = "tanssi-polkadot-v1.3.0" }

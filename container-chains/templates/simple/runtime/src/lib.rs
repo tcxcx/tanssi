@@ -39,7 +39,8 @@ use {
         parameter_types,
         traits::{
             ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains, InsideBoth,
-            InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade, 
+            InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
+            AsEnsureOriginWithArg, ConstU128, Contains, Currency, InstanceFilter, PrivilegeCmp
         },
         weights::{
             constants::{
@@ -49,11 +50,20 @@ use {
             ConstantMultiplier, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
             WeightToFeePolynomial,
         },
+        PalletId,
     },
     frame_system::{
         limits::{BlockLength, BlockWeights},
-        EnsureRoot,
+        EnsureRoot, EnsureSigned,
     },
+    pub use primitives::{
+        currency::*,
+        time::{
+            AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+            SLOT_DURATION,
+        },
+        AccountId, Address, Amount, AssetId, Balance, BlockNumber, Hash, Header, Index, Signature,
+    };
     nimbus_primitives::{NimbusId, SlotBeacon},
     pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier},
     parity_scale_codec::{Decode, Encode},
@@ -441,6 +451,83 @@ impl pallet_assets::Config for Runtime {
 }
 
 
+parameter_types! {
+	pub const KYCPalletId: PalletId = PalletId(*b"bitg/kyc");
+}
+
+impl pallet_kyc::Config for Runtime {
+	type AddOrigin = EnsureRoot<AccountId>;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type PalletId = KYCPalletId;
+	type MaxAuthorizedAccountCount = ConstU32<100>;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+  pub MarketplaceEscrowAccount : AccountId =  PalletId(*b"bitg/mkp").into_account_truncating();
+  pub const CarbonCreditsPalletId: PalletId = PalletId(*b"bitg/vcu");
+  pub const MaxAuthorizedAccountCount : u32 = 10;
+  pub const MaxDocumentCount : u32 = 10;
+  pub const MaxIpfsReferenceLength : u32 = 1024;
+  pub const MaxLongStringLength : u32 = 3072;
+  pub const MaxRoyaltyRecipients : u32 = 10;
+  pub const MaxShortStringLength : u32 = 1024;
+  pub const MinProjectId : u32 = 1000;
+  #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, MaxEncodedLen, TypeInfo)]
+  pub const MaxGroupSize : u32 = 10;
+  pub const MaxCoordinatesLength : u32 = 10;
+}
+
+impl pallet_carbon_credits::Config for Runtime {
+	type AssetHandler = Assets;
+	type AssetId = u32;
+	type ProjectId = u32;
+	type GroupId = u32;
+	type Balance = u128;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type ItemId = u32;
+	type KYCProvider = KYCPallet;
+	type MarketplaceEscrow = MarketplaceEscrowAccount;
+	type MaxAuthorizedAccountCount = MaxAuthorizedAccountCount;
+	type MaxDocumentCount = MaxDocumentCount;
+	type MaxGroupSize = MaxGroupSize;
+	type MaxIpfsReferenceLength = MaxIpfsReferenceLength;
+	type MaxLongStringLength = MaxLongStringLength;
+	type MaxRoyaltyRecipients = MaxRoyaltyRecipients;
+	type MaxShortStringLength = MaxShortStringLength;
+	type MinProjectId = MinProjectId;
+	type NFTHandler = Uniques;
+	type PalletId = CarbonCreditsPalletId;
+	type MaxCoordinatesLength = MaxCoordinatesLength;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const CarbonCreditsPoolPalletId: PalletId = PalletId(*b"bit/vcup");
+	pub const MaxAssetSymbolLength : u32 = 10;
+	pub const MaxIssuanceYearCount : u32 = 20;
+	pub const MaxProjectIdList : u32 = 100;
+	pub const MaxRegistryListCount : u32 = 10;
+	pub const MinPoolId : u32 = 10000;
+}
+
+impl pallet_carbon_credits_pool::Config for Runtime {
+	type AssetHandler = Assets;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type MaxAssetSymbolLength = MaxAssetSymbolLength;
+	type MaxIssuanceYearCount = MaxIssuanceYearCount;
+	type MaxProjectIdList = MaxProjectIdList;
+	type MaxRegistryListCount = MaxRegistryListCount;
+	type MinPoolId = MinPoolId;
+	type PalletId = CarbonCreditsPoolPalletId;
+	type PoolId = u32;
+	type WeightInfo = ();
+}
+
+
 //
 
 parameter_types! {
@@ -776,7 +863,6 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment = 11,
         Assets: pallet_assets = 12,
 
-
         // ContainerChain Author Verification
         AuthoritiesNoting: pallet_cc_authorities_noting = 50,
         AuthorInherent: pallet_author_inherent = 51,
@@ -789,6 +875,11 @@ construct_runtime!(
 
         RootTesting: pallet_root_testing = 100,
         AsyncBacking: pallet_async_backing::{Pallet, Storage} = 110,
+
+		// Bitgreen pallets
+        CarbonCredits: pallet_carbon_credits::{Pallet, Call, Storage, Event<T>} = 81,
+		CarbonCreditsPools: pallet_carbon_credits_pool::{Pallet, Call, Storage, Event<T>} = 82,
+		KYCPallet: pallet_kyc::{Pallet, Call, Storage, Config<T>, Event<T>} = 83,
 
         // Governance
 
