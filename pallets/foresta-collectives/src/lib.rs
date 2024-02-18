@@ -21,13 +21,29 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use frame_support::BoundedVec;
+	use scale_info::TypeInfo;
+	use codec::{Codec, FullCodec, MaxEncodedLen, EncodeLike};
 
+	use sp_runtime::{
+		traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize,Zero,CheckedAdd,CheckedSub}
+		,ArithmeticError,FixedPointOperand,};
 	use sp_std::{
 		vec::Vec,
 	};
+	use sp_std::{fmt::Debug,cmp::{Eq, PartialEq}};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Collective<T:Config> {
+        pub name: BoundedVec<u8,T::MaxStringLength>,
+		pub managers: BoundedVec<T::AccountId, T::MaxNumManagers>,
+		pub hash: BoundedVec<u8, T::MaxStringLength>,
+		pub strength: u32,
+	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -36,6 +52,24 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
+		type CollectiveId: Parameter
+			+ Member
+			+ FullCodec
+			+ Default
+			+ Eq
+			+ PartialEq
+			+ Copy
+			+ MaxEncodedLen
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ TypeInfo
+			+ From<u32>
+			+ Into<u32>
+			+ EncodeLike
+			+ CheckedAdd;
+		type MaxStringLength: Get<u32>;
+		type MaxNumManagers: Get<u32>;
+		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	// The pallet's runtime storage items.
@@ -46,14 +80,20 @@ pub mod pallet {
 	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-    #[derive(Clone, Encode, Decode, PartialEq, Debug, TypeInfo, Eq)]
-	#[scale_info(skip_type_params(T))]
-	pub struct Collective<T:Config> {
-        pub name: Vec<u8>,
-		pub managers: Vec<T::AccountId>,
-		pub hash: Vec<u8>,
-		pub strength: u32,
-	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_collective)]
+	pub(super) type CollectivesMap<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		Collective<T>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn collectives_count)]
+	pub(super) type CollectivesCount<T: Config> = StorageValue<_, T::CollectiveId,ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -63,6 +103,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored { something: u32, who: T::AccountId },
+		CollectiveCreated { uid2 : T::CollectiveId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -83,6 +124,30 @@ pub mod pallet {
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn add_collective(origin: OriginFor<T>, name: BoundedVec<u8,T::MaxStringLength>,
+		managers: BoundedVec<T::AccountId, T::MaxNumManagers>,hash : BoundedVec<u8,T::MaxStringLength>)  -> DispatchResult {
+			
+			T::ForceOrigin::ensure_origin(origin)?;
+
+			let strength: u32 = managers.len() as u32;
+
+			let collective = Collective::<T> {
+				name: name,
+				managers: managers,
+				hash: hash,
+				strength: strength,
+			};
+
+			let uid = Self::collectives_count();
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			CollectivesMap::<T>::insert(uid2,collective);
+			CollectivesCount::<T>::put(uid2);
+			Self::deposit_event(Event::CollectiveCreated{ uid2 });
+			Ok(())
+		}
+		
+		#[pallet::call_index(1)]
+		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
@@ -99,7 +164,7 @@ pub mod pallet {
 		}
 
 		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(1)]
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::cause_error())]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
