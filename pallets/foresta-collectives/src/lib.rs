@@ -22,6 +22,10 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
+	use sp_std::{
+		vec::Vec,
+	};
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
@@ -45,7 +49,7 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, PartialEq, Debug, TypeInfo, Eq)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Collective<T:Config> {
-        pub name: Vec<u8>;
+        pub name: Vec<u8>,
 		pub managers: Vec<T::AccountId>,
 		pub hash: Vec<u8>,
 		pub strength: u32,
