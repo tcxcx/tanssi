@@ -67,6 +67,7 @@ carbon-credits = { path = "pallets/carbon-credits", default-features = false }
 carbon-credits-pool = { path = "pallets/carbon-credits-pool", default-features = false }
 kyc = { path = "pallets/kyc", default-features = false }
 pallet-asset = { path = "pallets/assets", default-features = false }
+pallet-foresta-collectives = { path = "pallets/foresta-collectives", default-features = false }
 
 # Moonkit (wasm)
 nimbus-consensus = { git = "https://github.com/moondance-labs/moonkit", branch = "tanssi-polkadot-v1.3.0" }
