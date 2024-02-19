@@ -40,9 +40,58 @@ pub mod pallet {
 	#[scale_info(skip_type_params(T))]
 	pub struct Collective<T:Config> {
         pub name: BoundedVec<u8,T::MaxStringLength>,
-		pub managers: BoundedVec<T::AccountId, T::MaxNumManagers>,
 		pub hash: BoundedVec<u8, T::MaxStringLength>,
-		pub strength: u32,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Member<T:Config> {
+		pub metadata: BoundedVec<u8, T::MaxStringLength>,
+		pub member_id: u32,
+		pub status: MembershipStatus,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Project<T:Config> {
+		pub name: BoundedVec<u8, T::MaxStringLength>,
+		pub location: BoundedVec<u8, T::MaxStringLength>,
+		pub metadata: BoundedVec<u8, T::MaxStringLength>,
+		pub status: ProjectStatus,
+		pub collective_id: T::CollectiveId,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Vote<T:Config> {
+		pub yes_votes: u64,
+		pub no_votes: u64,
+		pub start: BlockNumberFor<T>,
+		pub end: BlockNumberFor<T>,
+		pub status: VoteStatus,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, Debug,MaxEncodedLen, TypeInfo, Eq, Copy)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub enum MembershipStatus {
+		Active,
+		InActive,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, Debug,MaxEncodedLen, TypeInfo, Eq, Copy)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub enum ProjectStatus {
+		VoteInprogress,
+		Ongoing,
+		Rejected,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, Debug, TypeInfo, Eq, Copy)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub enum VoteStatus {
+		InProgress,
+		Passed,
+		Failed,
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -53,7 +102,20 @@ pub mod pallet {
 		/// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
 		type CollectiveId: Parameter
-			+ Member
+			+ FullCodec
+			+ Default
+			+ Eq
+			+ PartialEq
+			+ Copy
+			+ MaxEncodedLen
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ TypeInfo
+			+ From<u32>
+			+ Into<u32>
+			+ EncodeLike
+			+ CheckedAdd;
+		type ProjectId: Parameter
 			+ FullCodec
 			+ Default
 			+ Eq
@@ -69,6 +131,8 @@ pub mod pallet {
 			+ CheckedAdd;
 		type MaxStringLength: Get<u32>;
 		type MaxNumManagers: Get<u32>;
+		type MaxConcurrentVotes: Get<u32>;
+		type VotingDuration: Get<BlockNumberFor<Self>>;
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
@@ -92,6 +156,62 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_member)]
+	pub(super) type Members<T:Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		Blake2_128Concat,
+		T::AccountId,
+		Member<T>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_membership_count)]
+	pub(super) type MembersCount<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		u32,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_managers)]
+	pub(super) type Managers<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		BoundedVec<T::AccountId, T::MaxNumManagers>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn projects_count)]
+	pub(super) type ProjectsCount<T:Config> = StorageValue<_, T::ProjectId,ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_project)]
+	pub(super) type ProjectsMap<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::ProjectId,
+		Project<T>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_current_voting)]
+	pub type CurrentVoting<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		BlockNumberFor<T>,
+		BoundedVec<T::ProjectId, T::MaxConcurrentVotes>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn collectives_count)]
 	pub(super) type CollectivesCount<T: Config> = StorageValue<_, T::CollectiveId,ValueQuery>;
 
@@ -104,6 +224,8 @@ pub mod pallet {
 		/// parameters. [something, who]
 		SomethingStored { something: u32, who: T::AccountId },
 		CollectiveCreated { uid2 : T::CollectiveId },
+		MemberAdded {collective_id: T::CollectiveId, member: T::AccountId, uid: u32},
+		ProjectCreated {collective_id: T::CollectiveId, uid2: T::ProjectId},
 	}
 
 	// Errors inform users that something went wrong.
@@ -113,6 +235,20 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		/// Member Already Exists
+		MemberAlreadyExists,
+		/// Member Does Not Exist
+		MemberDoesNotExist,
+		/// Collective Does Not exist
+		CollectiveDoesNotExist,
+		/// Not Allowed To Manage Membership
+		NotAllowedToManageMembership,
+		/// NoManagersFound
+		NoManagersFound,
+		/// MismatchTypes
+		MisMatchTypes,
+		/// Max Voting Exceeded
+		MaxVotingExceeded,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -129,24 +265,85 @@ pub mod pallet {
 			
 			T::ForceOrigin::ensure_origin(origin)?;
 
-			let strength: u32 = managers.len() as u32;
-
 			let collective = Collective::<T> {
 				name: name,
-				managers: managers,
 				hash: hash,
-				strength: strength,
 			};
 
 			let uid = Self::collectives_count();
 			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
-			CollectivesMap::<T>::insert(uid2,collective);
+			CollectivesMap::<T>::insert(uid2,&collective);
+			Managers::<T>::insert(uid2,&managers);
 			CollectivesCount::<T>::put(uid2);
 			Self::deposit_event(Event::CollectiveCreated{ uid2 });
 			Ok(())
 		}
-		
+
 		#[pallet::call_index(1)]
+		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId,
+		metadata: BoundedVec<u8,T::MaxStringLength>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			ensure!(!Members::<T>::contains_key(collective_id.clone(),&member.clone()), Error::<T>::MemberAlreadyExists);
+			let managers = Managers::<T>::get(collective_id.clone());
+			
+			match managers.binary_search(&who) {
+				Ok(_) => {
+					let uid = Self::get_membership_count(collective_id.clone()).checked_add(1).ok_or(ArithmeticError::Overflow)?;
+
+					let member_info = Member::<T> {
+						metadata: metadata,
+						member_id: uid,
+						status: MembershipStatus::Active,
+					};
+
+					Members::<T>::insert(collective_id.clone(),member.clone(),&member_info);
+					MembersCount::<T>::insert(collective_id.clone(),uid);
+					Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
+
+					Ok(())
+				},
+				Err(_) => Err(Error::<T>::NotAllowedToManageMembership.into()),
+
+			}
+			
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn create_project(origin: OriginFor<T>, collective_id: T::CollectiveId, name: BoundedVec<u8, T::MaxStringLength>,
+		location: BoundedVec<u8, T::MaxStringLength>, metadata: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
+
+			let project_info = Project::<T> {
+				name: name,
+				location: location,
+				metadata: metadata,
+				status: ProjectStatus::VoteInprogress,
+				collective_id: collective_id,
+			};
+
+			let uid = Self::projects_count();
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			ProjectsMap::<T>::insert(uid2,&project_info);
+
+			let current_block = <frame_system::Pallet<T>>::block_number();
+
+			let final_block = current_block + T::VotingDuration::get();
+
+			CurrentVoting::<T>::try_mutate(final_block, |projects| {
+				projects.try_push(uid2).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				Ok::<(),DispatchError>(())
+			})?; 
+
+			Self::deposit_event(Event::ProjectCreated{ collective_id, uid2 });
+
+			Ok(())
+
+		}
+		
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
@@ -164,7 +361,7 @@ pub mod pallet {
 		}
 
 		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(2)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::cause_error())]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
