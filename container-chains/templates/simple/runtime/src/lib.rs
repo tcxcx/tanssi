@@ -28,6 +28,10 @@ use sp_version::NativeVersion;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
+pub use bitgreen_primitives::{
+    currency::*,
+};
+
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use {
     cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases,
@@ -56,14 +60,6 @@ use {
         limits::{BlockLength, BlockWeights},
         EnsureRoot, EnsureSigned,
     },
-    // pub use primitives::{
-    //     currency::*,
-    //     time::{
-    //         AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    //         SLOT_DURATION,
-    //     },
-    //     AccountId, Address, Amount, AssetId, Balance, BlockNumber, Hash, Header, Index, Signature,
-    // }
     nimbus_primitives::{NimbusId, SlotBeacon},
     pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier},
     parity_scale_codec::{Decode, Encode},
@@ -421,7 +417,7 @@ impl pallet_assets::Config for Runtime {
     // Stores the balances in an unsigned integer of 128bits
     type Balance = u128;
     // The id of an asset can be defined as an unsigned integer of 64 bits
-    type AssetId = u64;
+    type AssetId = u32;
     // Uses module Balances as mechanism for currency operations
     type Currency = Balances;
 
@@ -434,7 +430,7 @@ impl pallet_assets::Config for Runtime {
     type StringLimit = StringLimit;
 
     // More configuration
-    type AssetIdParameter = u64;
+    type AssetIdParameter = u32;
     // Defines the allowed origins to create assets
     type CreateOrigin = 
         frame_support::traits::AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
@@ -527,8 +523,40 @@ impl pallet_carbon_credits_pool::Config for Runtime {
 	type WeightInfo = ();
 }
 
+// TODO : Ensure sensible values
+impl pallet_uniques::Config for Runtime {
+	type AttributeDepositBase = ConstU128<1>;
+	type CollectionDeposit = ConstU128<0>;
+	type CollectionId = u32;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
+	type Currency = Balances;
+	type DepositPerByte = DepositPerByte;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type ItemDeposit = ConstU128<0>;
+	type ItemId = u32;
+	type KeyLimit = ConstU32<50>;
+	type Locker = ();
+	type MetadataDepositBase = ConstU128<1>;
+	type StringLimit = ConstU32<50>;
+	type ValueLimit = ConstU32<50>;
+	type WeightInfo = ();
+}
 
-//
+
+parameter_types! {
+	pub const MaxKeyLength : u32 = 1024;
+	pub const MaxValueLength : u32 = 64000;
+	pub const DepositPerByte : Balance = DOLLARS / 10;
+}
+
+impl pallet_general_storage::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MaxKeyLength = MaxKeyLength;
+	type MaxValueLength = MaxValueLength;
+	type DepositPerByte = DepositPerByte;
+}
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
@@ -880,6 +908,8 @@ construct_runtime!(
         CarbonCredits: pallet_carbon_credits::{Pallet, Call, Storage, Event<T>} = 81,
 		CarbonCreditsPools: pallet_carbon_credits_pool::{Pallet, Call, Storage, Event<T>} = 82,
 		KYCPallet: pallet_kyc::{Pallet, Call, Storage, Config<T>, Event<T>} = 83,
+		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 84,
+		GeneralStorage: pallet_general_storage::{Pallet, Call, Storage, Event<T>} = 85,
 
         // Governance
 

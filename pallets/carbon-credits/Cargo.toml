@@ -24,7 +24,7 @@ sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release
 
 # Local dependencies
 pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
-primitives = { package = 'bitgreen-primitives', path = '../../primitives/btg-primitives/', default-features = false }
+bitgreen_primitives = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
 
 # Benchmarking
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, optional = true, branch = "release-polkadot-v1.1.0" }

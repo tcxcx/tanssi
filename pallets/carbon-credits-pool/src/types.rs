@@ -5,7 +5,7 @@
 //! Types for CarbonCredits-pools
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{BoundedBTreeMap, BoundedVec};
-use primitives::{IssuanceYear, RegistryName};
+use bitgreen_primitives::{IssuanceYear, RegistryName};
 use scale_info::TypeInfo;
 
 use super::*;

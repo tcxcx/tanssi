@@ -1801,6 +1801,7 @@ dependencies = [
 name = "container-chain-template-simple-runtime"
 version = "0.1.0"
 dependencies = [
+ "bitgreen-primitives",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -1826,6 +1827,7 @@ dependencies = [
  "pallet-carbon-credits",
  "pallet-carbon-credits-pool",
  "pallet-cc-authorities-noting",
+ "pallet-general-storage",
  "pallet-kyc",
  "pallet-maintenance-mode",
  "pallet-migrations",
@@ -8077,6 +8079,21 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-general-storage"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
