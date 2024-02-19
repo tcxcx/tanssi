@@ -40,7 +40,7 @@ use {
         traits::{
             ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains, InsideBoth,
             InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
-            AsEnsureOriginWithArg, ConstU128, Contains, Currency, InstanceFilter, PrivilegeCmp
+            AsEnsureOriginWithArg, Currency, PrivilegeCmp
         },
         weights::{
             constants::{
@@ -56,14 +56,14 @@ use {
         limits::{BlockLength, BlockWeights},
         EnsureRoot, EnsureSigned,
     },
-    pub use primitives::{
-        currency::*,
-        time::{
-            AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-            SLOT_DURATION,
-        },
-        AccountId, Address, Amount, AssetId, Balance, BlockNumber, Hash, Header, Index, Signature,
-    };
+    // pub use primitives::{
+    //     currency::*,
+    //     time::{
+    //         AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    //         SLOT_DURATION,
+    //     },
+    //     AccountId, Address, Amount, AssetId, Balance, BlockNumber, Hash, Header, Index, Signature,
+    // }
     nimbus_primitives::{NimbusId, SlotBeacon},
     pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier},
     parity_scale_codec::{Decode, Encode},
@@ -74,7 +74,7 @@ use {
     sp_core::{MaxEncodedLen, OpaqueMetadata},
     sp_runtime::{
         create_runtime_str, generic, impl_opaque_keys,
-        traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
         transaction_validity::{TransactionSource, TransactionValidity},
         ApplyExtrinsicResult, MultiSignature,
     },
