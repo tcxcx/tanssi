@@ -559,6 +559,25 @@ impl pallet_general_storage::Config for Runtime {
 }
 
 parameter_types! {
+    pub const Managers: u32 = 5;
+    pub const MaxString: u32 = 64;
+    pub const MaxVotesPerBlock: u32 = 16;
+    pub const VoteDuration: BlockNumber = 200;
+}
+
+impl pallet_foresta_collectives::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
+    type CollectiveId = u32;
+    type ProjectId = u32;
+    type MaxNumManagers = Managers;
+    type MaxStringLength = MaxString;
+    type MaxConcurrentVotes = MaxVotesPerBlock;
+    type VotingDuration = VoteDuration;
+    type ForceOrigin = EnsureRoot<AccountId>;
+}
+
+parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
     pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
@@ -912,6 +931,7 @@ construct_runtime!(
 		GeneralStorage: pallet_general_storage::{Pallet, Call, Storage, Event<T>} = 85,
 
         // Governance
+        ForestaCollectives: pallet_foresta_collectives = 91,
 
     }
 );
