@@ -32,6 +32,7 @@ pub mod pallet {
 		vec::Vec,
 	};
 	use sp_std::{fmt::Debug,cmp::{Eq, PartialEq}};
+	use frame_support::traits::Contains;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -41,14 +42,6 @@ pub mod pallet {
 	pub struct Collective<T:Config> {
         pub name: BoundedVec<u8,T::MaxStringLength>,
 		pub hash: BoundedVec<u8, T::MaxStringLength>,
-	}
-
-	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
-	#[scale_info(skip_type_params(T))]
-	pub struct Member<T:Config> {
-		pub metadata: BoundedVec<u8, T::MaxStringLength>,
-		pub member_id: u32,
-		pub status: MembershipStatus,
 	}
 
 	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
@@ -100,6 +93,7 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
+		type KYCProvider: Contains<Self::AccountId>;
 		type CollectiveId: Parameter
 			+ FullCodec
 			+ Default
@@ -155,15 +149,15 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_member)]
+	#[pallet::getter(fn check_member)]
 	pub(super) type Members<T:Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		T::CollectiveId,
 		Blake2_128Concat,
 		T::AccountId,
-		Member<T>,
-		OptionQuery,
+		bool,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -259,6 +253,8 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		/// KYC Failed
+		KYCAuthorisationFailed,
 		/// Member Already Exists
 		MemberAlreadyExists,
 		/// Member Does Not Exist
@@ -342,6 +338,21 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn join_collective(origin: OriginFor<T>, collective_id: T::CollectiveId) -> DispatchResult {
+			let member = ensure_signed(origin)?;
+			Self::check_kyc_approval(&member)?;
+			ensure!(!Self::check_member(collective_id,member.clone()),Error::<T>::MemberAlreadyExists);
+			let uid = Self::get_membership_count(collective_id.clone()).checked_add(1).ok_or(ArithmeticError::Overflow)?;
+			Members::<T>::insert(collective_id.clone(),member.clone(),true);
+			MembersCount::<T>::insert(collective_id.clone(),uid);
+			
+			Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
+
+			Ok(())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId,
 		metadata: BoundedVec<u8,T::MaxStringLength>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -352,13 +363,8 @@ pub mod pallet {
 				Ok(_) => {
 					let uid = Self::get_membership_count(collective_id.clone()).checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
-					let member_info = Member::<T> {
-						metadata: metadata,
-						member_id: uid,
-						status: MembershipStatus::Active,
-					};
 
-					Members::<T>::insert(collective_id.clone(),member.clone(),&member_info);
+					Members::<T>::insert(collective_id.clone(),member.clone(),true);
 					MembersCount::<T>::insert(collective_id.clone(),uid);
 					Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
 
@@ -370,7 +376,7 @@ pub mod pallet {
 			
 		}
 
-		#[pallet::call_index(2)]
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn propose_project(origin: OriginFor<T>, collective_id: T::CollectiveId, name: BoundedVec<u8, T::MaxStringLength>,
 		location: BoundedVec<u8, T::MaxStringLength>, metadata: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
@@ -413,7 +419,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(3)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn project_creation_vote(origin: OriginFor<T>,collective_id: T::CollectiveId, 
 		project_id: T::ProjectId, vote_cast: bool) -> DispatchResult {
@@ -441,7 +447,7 @@ pub mod pallet {
 			Ok(())
 		}
 		
-		#[pallet::call_index(4)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::do_something())]
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
@@ -459,7 +465,7 @@ pub mod pallet {
 		}
 
 		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(5)]
+		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::cause_error())]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
@@ -478,4 +484,15 @@ pub mod pallet {
 			}
 		}
 	}
+
+	impl<T:Config> Pallet<T> {
+		pub fn check_kyc_approval(account_id: &T::AccountId) -> DispatchResult {
+			if !T::KYCProvider::contains(account_id) {
+				Err(Error::<T>::KYCAuthorisationFailed.into())
+			} else {
+				Ok(())
+			}
+		}
+	}
 }
+

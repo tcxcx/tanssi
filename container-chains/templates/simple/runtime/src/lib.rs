@@ -568,6 +568,7 @@ parameter_types! {
 impl pallet_foresta_collectives::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
+    type KYCProvider = KYCPallet;
     type CollectiveId = u32;
     type ProjectId = u32;
     type MaxNumManagers = Managers;
