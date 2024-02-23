@@ -563,6 +563,7 @@ parameter_types! {
     pub const MaxString: u32 = 64;
     pub const MaxVotesPerBlock: u32 = 16;
     pub const VoteDuration: BlockNumber = 200;
+    pub const MaxPPC: u32 = 100;
 }
 
 impl pallet_foresta_collectives::Config for Runtime {
@@ -570,10 +571,11 @@ impl pallet_foresta_collectives::Config for Runtime {
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
     type KYCProvider = KYCPallet;
     type CollectiveId = u32;
-    type ProjectId = u32;
+    type ProjId = u32;
     type MaxNumManagers = Managers;
     type MaxStringLength = MaxString;
     type MaxConcurrentVotes = MaxVotesPerBlock;
+    type MaxProjectsPerCollective = MaxPPC;
     type VotingDuration = VoteDuration;
     type ForceOrigin = EnsureRoot<AccountId>;
 }

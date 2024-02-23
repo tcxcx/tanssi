@@ -88,7 +88,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_carbon_credits::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
@@ -108,7 +108,7 @@ pub mod pallet {
 			+ Into<u32>
 			+ EncodeLike
 			+ CheckedAdd;
-		type ProjectId: Parameter
+		type ProjId: Parameter
 			+ FullCodec
 			+ Default
 			+ Eq
@@ -125,6 +125,7 @@ pub mod pallet {
 		type MaxStringLength: Get<u32>;
 		type MaxNumManagers: Get<u32>;
 		type MaxConcurrentVotes: Get<u32>;
+		type MaxProjectsPerCollective: Get<u32>;
 		type VotingDuration: Get<BlockNumberFor<Self>>;
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
@@ -182,17 +183,28 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_projects_count)]
-	pub(super) type ProjectsCount<T:Config> = StorageValue<_, T::ProjectId,ValueQuery>;
+	pub(super) type ProjectsCount<T:Config> = StorageValue<_, T::ProjId,ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_project)]
 	pub(super) type ProjectsMap<T:Config> = StorageMap<
 		_,
 		Blake2_128Concat,
-		T::ProjectId,
+		T::ProjId,
 		Project<T>,
 		OptionQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_approved_projects)]
+	pub(super) type ApprovedProjects<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		BoundedVec<<T as pallet_carbon_credits::Config>::ProjectId, T::MaxProjectsPerCollective>,
+		ValueQuery,
+	>;
+
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_current_voting)]
@@ -200,7 +212,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		BlockNumberFor<T>,
-		BoundedVec<(T::CollectiveId,T::ProjectId), T::MaxConcurrentVotes>,
+		BoundedVec<(T::CollectiveId,T::ProjId), T::MaxConcurrentVotes>,
 		ValueQuery,
 	>;
 
@@ -211,7 +223,7 @@ pub mod pallet {
 		Blake2_128Concat,
 		T::CollectiveId,
 		Blake2_128Concat,
-		T::ProjectId,
+		T::ProjId,
 		Vote<T>,
 		OptionQuery,
 	>;
@@ -223,7 +235,41 @@ pub mod pallet {
 		Blake2_128Concat,
 		T::AccountId,
 		Blake2_128Concat,
-		T::ProjectId,
+		T::ProjId,
+		bool,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_project_approval_voting)]
+	pub type ProjectApprovalVoting<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		BlockNumberFor<T>,
+		BoundedVec<(T::CollectiveId,<T as pallet_carbon_credits::Config>::ProjectId), T::MaxConcurrentVotes>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_project_approval_vote)]
+	pub(super) type ProjectApprovalVote<T:Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		Blake2_128Concat,
+		<T as pallet_carbon_credits::Config>::ProjectId,
+		Vote<T>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn check_project_approval_vote)]
+	pub(super) type CheckProjectApprovalVote<T:Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Blake2_128Concat,
+		<T as pallet_carbon_credits::Config>::ProjectId,
 		bool,
 		ValueQuery,
 	>;
@@ -242,8 +288,10 @@ pub mod pallet {
 		SomethingStored { something: u32, who: T::AccountId },
 		CollectiveCreated { uid2 : T::CollectiveId },
 		MemberAdded {collective_id: T::CollectiveId, member: T::AccountId, uid: u32},
-		ProjectProposed {collective_id: T::CollectiveId, uid2: T::ProjectId},
-		ProjectCreationVoteCast {collective_id: T::CollectiveId, project_id: T::ProjectId},
+		ProjectProposed {collective_id: T::CollectiveId, uid2: T::ProjId},
+		ProjectCreationVoteCast {collective_id: T::CollectiveId, project_id: T::ProjId},
+		ProjectApprovalInit { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
+		ProjectApprovalVoteCast { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
 	}
 
 	// Errors inform users that something went wrong.
@@ -277,6 +325,10 @@ pub mod pallet {
 		VoteNotInProgress,
 		/// Already Voted
 		AlreadyVoted,
+		/// Project Not Found
+		ProjectNotFound,
+		/// Max Projects Exceeded
+		MaxProjectsExceeded,
 	}
 
 	#[pallet::hooks]
@@ -284,23 +336,24 @@ pub mod pallet {
 		fn on_initialize(n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
 			let mut weight = T::DbWeight::get().reads_writes(1, 1);
 
-			let creation_vote = CurrentCreationVoting::<T>::take(n);
+			let approval_vote = ProjectApprovalVoting::<T>::take(n);
 
-			for (c_id,p_id) in creation_vote.iter() {
+			for (c_id,p_id) in approval_vote.iter() {
 				weight = weight.saturating_add(T::DbWeight::get().reads_writes(2, 2));
-				let vote = CreationVote::<T>::take(c_id,p_id);
+				let vote = ProjectApprovalVote::<T>::take(c_id,p_id);
+				let mut is_approved: bool = false;
 				if let Some(mut vote) = vote {
-					let mut project = ProjectsMap::<T>::take(p_id).unwrap();
 					if vote.yes_votes > vote.no_votes {
-						vote.status = VoteStatus::Passed;
-						project.status = ProjectStatus::Ongoing;
+						vote.status = VoteStatus::Passed;						
+						is_approved = true;
 					} else {
-						vote.status = VoteStatus::Failed;
-						project.status = ProjectStatus::Rejected;
+						vote.status = VoteStatus::Failed;						
 					}
 
-					CreationVote::<T>::insert(c_id,p_id,&vote);
-					ProjectsMap::<T>::insert(p_id,&project);
+					let _ = Self::do_approve_project(*c_id,*p_id,is_approved);
+
+					ProjectApprovalVote::<T>::insert(c_id,p_id,&vote);
+					
 				}
 			}
 
@@ -316,11 +369,11 @@ pub mod pallet {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn add_collective(origin: OriginFor<T>, name: BoundedVec<u8,T::MaxStringLength>,
 		managers: BoundedVec<T::AccountId, T::MaxNumManagers>,hash : BoundedVec<u8,T::MaxStringLength>)  -> DispatchResult {
 			
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 
 			let collective = Collective::<T> {
 				name: name,
@@ -337,7 +390,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn join_collective(origin: OriginFor<T>, collective_id: T::CollectiveId) -> DispatchResult {
 			let member = ensure_signed(origin)?;
 			Self::check_kyc_approval(&member)?;
@@ -352,7 +405,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId,
 		metadata: BoundedVec<u8,T::MaxStringLength>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -377,7 +430,70 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		pub fn init_project_approval(origin: OriginFor<T>, collective_id: T::CollectiveId, 
+		project_id: <T as pallet_carbon_credits::Config>::ProjectId) -> DispatchResult {
+			
+			let who = ensure_signed(origin)?;
+			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
+			
+			let project_details: pallet_carbon_credits::ProjectDetail<T> =
+					pallet_carbon_credits::Pallet::get_project_details(project_id)
+						.ok_or(Error::<T>::ProjectNotFound)?;
+
+			let current_block = <frame_system::Pallet<T>>::block_number();
+
+			let final_block = current_block + T::VotingDuration::get();
+
+			ProjectApprovalVoting::<T>::try_mutate(final_block, |projects| {
+				projects.try_push((collective_id,project_id)).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				Ok::<(),DispatchError>(())
+			})?; 
+
+			let vote_info = Vote::<T> {
+				yes_votes: 0,
+				no_votes: 0,
+				end: final_block,
+				status: VoteStatus::InProgress,
+			};
+
+			ProjectApprovalVote::<T>::insert(collective_id,project_id,&vote_info);
+
+			Self::deposit_event(Event::ProjectApprovalInit{ collective_id, project_id });
+
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		pub fn project_approval_vote(origin: OriginFor<T>,collective_id: T::CollectiveId, 
+		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_cast: bool) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			// Check if member
+			ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
+			// Get vote
+			let mut vote = Self::get_project_approval_vote(collective_id,project_id).ok_or(Error::<T>::VoteNotFound)?;
+			// Check if vote is in progress
+			ensure!(vote.status == VoteStatus::InProgress, Error::<T>::VoteNotInProgress);
+			// Check if member has already voted
+			ensure!(!Self::check_project_approval_vote(who.clone(),project_id), Error::<T>::AlreadyVoted);
+
+			if vote_cast {
+				vote.yes_votes = vote.yes_votes + 1;
+			} else {
+				vote.no_votes = vote.no_votes + 1;
+			}
+
+			ProjectApprovalVote::<T>::insert(collective_id,project_id,vote);
+			CheckProjectApprovalVote::<T>::insert(who.clone(),project_id,true);
+
+			Self::deposit_event(Event::ProjectApprovalVoteCast{ collective_id, project_id });
+			
+			Ok(())
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn propose_project(origin: OriginFor<T>, collective_id: T::CollectiveId, name: BoundedVec<u8, T::MaxStringLength>,
 		location: BoundedVec<u8, T::MaxStringLength>, metadata: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -419,10 +535,10 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::call_index(6)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn project_creation_vote(origin: OriginFor<T>,collective_id: T::CollectiveId, 
-		project_id: T::ProjectId, vote_cast: bool) -> DispatchResult {
+		project_id: T::ProjId, vote_cast: bool) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// Check if member
 			ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
@@ -447,8 +563,8 @@ pub mod pallet {
 			Ok(())
 		}
 		
-		#[pallet::call_index(5)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::call_index(7)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
@@ -465,8 +581,8 @@ pub mod pallet {
 		}
 
 		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(6)]
-		#[pallet::weight(T::WeightInfo::cause_error())]
+		#[pallet::call_index(8)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::cause_error())]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
@@ -483,16 +599,34 @@ pub mod pallet {
 				},
 			}
 		}
+
 	}
 
 	impl<T:Config> Pallet<T> {
 		pub fn check_kyc_approval(account_id: &T::AccountId) -> DispatchResult {
-			if !T::KYCProvider::contains(account_id) {
+			if !<T as pallet::Config>::KYCProvider::contains(account_id) {
 				Err(Error::<T>::KYCAuthorisationFailed.into())
 			} else {
 				Ok(())
 			}
 		}
+
+		pub fn do_approve_project(collective_id: T::CollectiveId,
+		project_id: <T as pallet_carbon_credits::Config>::ProjectId, is_approved: bool) -> DispatchResult {
+			pallet_carbon_credits::Pallet::<T>::approve_project(frame_system::RawOrigin::Root.into(),project_id,is_approved)?;
+			ApprovedProjects::<T>::try_mutate(collective_id, |projects| {
+				projects.try_push(project_id).map_err(|_| Error::<T>::MaxProjectsExceeded)?;
+				Ok::<(),DispatchError>(())
+			})?; 
+			Ok(())
+		}
+
+		pub fn do_authorize_account(account: T::AccountId) -> DispatchResult {
+			pallet_carbon_credits::Pallet::<T>::force_add_authorized_account(frame_system::RawOrigin::Root.into(),account)?;
+
+			Ok(())
+		}
+
 	}
 }
 

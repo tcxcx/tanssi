@@ -8089,6 +8089,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-carbon-credits",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
