@@ -571,7 +571,6 @@ impl pallet_foresta_collectives::Config for Runtime {
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
     type KYCProvider = KYCPallet;
     type CollectiveId = u32;
-    type ProjId = u32;
     type MaxNumManagers = Managers;
     type MaxStringLength = MaxString;
     type MaxConcurrentVotes = MaxVotesPerBlock;

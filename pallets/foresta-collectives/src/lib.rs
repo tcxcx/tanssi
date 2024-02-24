@@ -46,16 +46,6 @@ pub mod pallet {
 
 	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
 	#[scale_info(skip_type_params(T))]
-	pub struct Project<T:Config> {
-		pub name: BoundedVec<u8, T::MaxStringLength>,
-		pub location: BoundedVec<u8, T::MaxStringLength>,
-		pub metadata: BoundedVec<u8, T::MaxStringLength>,
-		pub status: ProjectStatus,
-		pub collective_id: T::CollectiveId,
-	}
-
-	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
-	#[scale_info(skip_type_params(T))]
 	pub struct Vote<T:Config> {
 		pub yes_votes: u64,
 		pub no_votes: u64,
@@ -95,20 +85,6 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		type KYCProvider: Contains<Self::AccountId>;
 		type CollectiveId: Parameter
-			+ FullCodec
-			+ Default
-			+ Eq
-			+ PartialEq
-			+ Copy
-			+ MaxEncodedLen
-			+ MaybeSerializeDeserialize
-			+ Debug
-			+ TypeInfo
-			+ From<u32>
-			+ Into<u32>
-			+ EncodeLike
-			+ CheckedAdd;
-		type ProjId: Parameter
 			+ FullCodec
 			+ Default
 			+ Eq
@@ -182,20 +158,6 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_projects_count)]
-	pub(super) type ProjectsCount<T:Config> = StorageValue<_, T::ProjId,ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_project)]
-	pub(super) type ProjectsMap<T:Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::ProjId,
-		Project<T>,
-		OptionQuery,
-	>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn get_approved_projects)]
 	pub(super) type ApprovedProjects<T:Config> = StorageMap<
 		_,
@@ -205,40 +167,6 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_current_voting)]
-	pub type CurrentCreationVoting<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		BlockNumberFor<T>,
-		BoundedVec<(T::CollectiveId,T::ProjId), T::MaxConcurrentVotes>,
-		ValueQuery,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_project_creation_vote)]
-	pub(super) type CreationVote<T:Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::CollectiveId,
-		Blake2_128Concat,
-		T::ProjId,
-		Vote<T>,
-		OptionQuery,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn check_creation_vote)]
-	pub(super) type CheckCreationVote<T:Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		Blake2_128Concat,
-		T::ProjId,
-		bool,
-		ValueQuery,
-	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_project_approval_voting)]
@@ -288,8 +216,6 @@ pub mod pallet {
 		SomethingStored { something: u32, who: T::AccountId },
 		CollectiveCreated { uid2 : T::CollectiveId },
 		MemberAdded {collective_id: T::CollectiveId, member: T::AccountId, uid: u32},
-		ProjectProposed {collective_id: T::CollectiveId, uid2: T::ProjId},
-		ProjectCreationVoteCast {collective_id: T::CollectiveId, project_id: T::ProjId},
 		ProjectApprovalInit { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
 		ProjectApprovalVoteCast { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
 	}
@@ -488,77 +414,6 @@ pub mod pallet {
 			CheckProjectApprovalVote::<T>::insert(who.clone(),project_id,true);
 
 			Self::deposit_event(Event::ProjectApprovalVoteCast{ collective_id, project_id });
-			
-			Ok(())
-		}
-
-		#[pallet::call_index(5)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn propose_project(origin: OriginFor<T>, collective_id: T::CollectiveId, name: BoundedVec<u8, T::MaxStringLength>,
-		location: BoundedVec<u8, T::MaxStringLength>, metadata: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
-
-			let project_info = Project::<T> {
-				name: name,
-				location: location,
-				metadata: metadata,
-				status: ProjectStatus::VoteInprogress,
-				collective_id: collective_id,
-			};
-
-			let uid = Self::get_projects_count();
-			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
-			ProjectsMap::<T>::insert(uid2,&project_info);
-
-			let current_block = <frame_system::Pallet<T>>::block_number();
-
-			let final_block = current_block + T::VotingDuration::get();
-
-			CurrentCreationVoting::<T>::try_mutate(final_block, |projects| {
-				projects.try_push((collective_id,uid2)).map_err(|_| Error::<T>::MaxVotingExceeded)?;
-				Ok::<(),DispatchError>(())
-			})?; 
-
-			let vote_info = Vote::<T> {
-				yes_votes: 0,
-				no_votes: 0,
-				end: final_block,
-				status: VoteStatus::InProgress,
-			};
-
-			CreationVote::<T>::insert(collective_id,uid2,&vote_info);
-			ProjectsCount::<T>::put(uid2);
-
-			Self::deposit_event(Event::ProjectProposed{ collective_id, uid2 });
-
-			Ok(())
-		}
-
-		#[pallet::call_index(6)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn project_creation_vote(origin: OriginFor<T>,collective_id: T::CollectiveId, 
-		project_id: T::ProjId, vote_cast: bool) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			// Check if member
-			ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
-			// Get vote
-			let mut vote = Self::get_project_creation_vote(collective_id,project_id).ok_or(Error::<T>::VoteNotFound)?;
-			// Check if vote is in progress
-			ensure!(vote.status == VoteStatus::InProgress, Error::<T>::VoteNotInProgress);
-			// Check if member has already voted
-			ensure!(!Self::check_creation_vote(who.clone(),project_id), Error::<T>::AlreadyVoted);
-
-			if vote_cast {
-				vote.yes_votes = vote.yes_votes + 1;
-			} else {
-				vote.no_votes = vote.no_votes + 1;
-			}
-
-			CreationVote::<T>::insert(collective_id,project_id,vote);
-			CheckCreationVote::<T>::insert(who.clone(),project_id,true);
-
-			Self::deposit_event(Event::ProjectCreationVoteCast{ collective_id, project_id });
 			
 			Ok(())
 		}
