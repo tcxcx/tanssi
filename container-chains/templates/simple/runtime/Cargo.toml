@@ -96,6 +96,7 @@ pallet-carbon-credits-pool = { workspace = true }
 pallet-kyc = { workspace = true }
 pallet-general-storage = { workspace = true }
 pallet-foresta-collectives = { workspace = true }
+pallet-foresta-ocw = { workspace = true }
 
 
 # Local Dependencies

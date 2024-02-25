@@ -13,38 +13,27 @@ use sp_runtime::Percent;
 use sp_std::convert::TryInto;
 
 /// helper function to generate standard creation details
-fn get_default_creation_params<T: Config>() -> ProjectCreateParams<T>
-where
-	<T as frame_system::Config>::AccountId: From<u32>,
-{
-	let royalty = Royalty::<T::AccountId> {
-		account_id: 1_u32.into(),
-		percent_of_fees: Percent::from_percent(0),
-	};
 
-	let creation_params = ProjectCreateParams {
-		name: "name".as_bytes().to_vec().try_into().unwrap(),
-		description: "description".as_bytes().to_vec().try_into().unwrap(),
-		location: "(1, 1), (2, 2), (3, 3), (4, 4)".as_bytes().to_vec().try_into().unwrap(),
-		images: vec!["image_link".as_bytes().to_vec().try_into().unwrap()].try_into().unwrap(),
-		videos: vec!["video_link".as_bytes().to_vec().try_into().unwrap()].try_into().unwrap(),
-		documents: vec!["document_link".as_bytes().to_vec().try_into().unwrap()]
-			.try_into()
-			.unwrap(),
-		registry_details: get_default_registry_details::<T>(),
-		sdg_details: get_default_sdg_details::<T>(),
-		royalties: Some(vec![royalty].try_into().unwrap()),
-		batch_groups: get_default_batch_group::<T>(),
-		project_type: None,
-	};
-
-	creation_params
-}
 
 #[test]
 fn it_works_for_add_collective() {
 	new_test_ext().execute_with(|| {
-		
+		// Root creates collective
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+	});
+}
+
+#[test]
+fn it_works_for_adding_members_to_collective() {
+	new_test_ext().execute_with(|| {
+		// Root creates collective
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+
+		let member = 1;
+
+		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),1));
 	});
 }
 

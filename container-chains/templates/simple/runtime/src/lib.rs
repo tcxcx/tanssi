@@ -39,6 +39,7 @@ use {
     frame_support::{
         construct_runtime,
         dispatch::DispatchClass,
+        instances::{Instance1, Instance2},
         pallet_prelude::DispatchResult,
         parameter_types,
         traits::{
@@ -70,13 +71,14 @@ use {
     sp_core::{MaxEncodedLen, OpaqueMetadata},
     sp_runtime::{
         create_runtime_str, generic, impl_opaque_keys,
-        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, ConvertInto},
         transaction_validity::{TransactionSource, TransactionValidity},
         ApplyExtrinsicResult, MultiSignature,
     },
     sp_std::prelude::*,
     sp_version::RuntimeVersion,
 };
+use sp_runtime::SaturatedConversion;
 
 pub mod xcm_config;
 
@@ -579,6 +581,82 @@ impl pallet_foresta_collectives::Config for Runtime {
     type ForceOrigin = EnsureRoot<AccountId>;
 }
 
+pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
+
+/// Configure the pallet template in pallets/template.
+parameter_types! {
+	pub const GracePeriod: BlockNumber = 3;
+	pub const MaxP: u32 = 64;
+	pub const MaxA: u32 = 64;
+}
+
+//Pallet OCW
+impl pallet_foresta_ocw::Config for Runtime {
+	type AuthorityId = pallet_foresta_ocw::crypto::TestAuthId;
+	type RuntimeEvent = RuntimeEvent;
+	type GracePeriod = GracePeriod;
+	type MaxPrices = MaxP;
+	type MaxAuthorities = MaxA;
+}
+
+impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+		call: RuntimeCall,
+		public: <Signature as sp_runtime::traits::Verify>::Signer,
+		account: AccountId,
+		index: Index,
+	) -> Option<(
+		RuntimeCall,
+		<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+	)> {
+		let period = BlockHashCount::get() as u64;
+		let current_block = System::block_number()
+			.saturated_into::<u64>()
+			.saturating_sub(1);
+		let tip = 0;
+		let extra: SignedExtra = (
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
+			frame_system::CheckNonce::<Runtime>::from(index),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+		);
+
+		#[cfg_attr(not(feature = "std"), allow(unused_variables))]
+		let raw_payload = SignedPayload::new(call, extra)
+			.map_err(|e| {
+				log::warn!("SignedPayload error: {:?}", e);
+			})
+			.ok()?;
+
+		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+
+		let address = account;
+		let (call, extra, _) = raw_payload.deconstruct();
+		Some((call, (sp_runtime::MultiAddress::Id(address), signature.into(), extra)))
+	}
+}
+
+impl frame_system::offchain::SigningTypes for Runtime {
+	type Public = <Signature as sp_runtime::traits::Verify>::Signer;
+	type Signature = Signature;
+}
+
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type OverarchingCall = RuntimeCall;
+}
+
+
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
     pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
@@ -934,6 +1012,7 @@ construct_runtime!(
 
         // Governance
         ForestaCollectives: pallet_foresta_collectives = 91,
+        ForestaOCW: pallet_foresta_ocw = 92,
 
     }
 );

@@ -1829,6 +1829,7 @@ dependencies = [
  "pallet-carbon-credits-pool",
  "pallet-cc-authorities-noting",
  "pallet-foresta-collectives",
+ "pallet-foresta-ocw",
  "pallet-general-storage",
  "pallet-kyc",
  "pallet-maintenance-mode",
@@ -6235,6 +6236,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lite-json"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd0e787ffe1153141a0f6f6d759fdf1cc34b1226e088444523812fd412a5cca2"
+dependencies = [
+ "lite-parser",
+]
+
+[[package]]
+name = "lite-parser"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d5f9dc37c52d889a21fd701983d02bb6a84f852c5140a6c80ef4557f7dc29e"
+dependencies = [
+ "paste",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8087,6 +8106,7 @@ dependencies = [
 name = "pallet-foresta-collectives"
 version = "4.0.0-dev"
 dependencies = [
+ "bitgreen-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8101,6 +8121,24 @@ dependencies = [
  "serde",
  "sp-core",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-foresta-ocw"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "lite-json",
+ "log",
+ "pallet-foresta-collectives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
  "sp-runtime",
  "sp-std",
 ]

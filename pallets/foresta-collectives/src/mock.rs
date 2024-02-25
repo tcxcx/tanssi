@@ -201,7 +201,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
 	pallet_membership::GenesisConfig::<Test> {
-		members: sp_core::bounded_vec![1, 3, 10],
+		members: sp_core::bounded_vec![1, 2, 3, 10],
 		..Default::default()
 	}
 	.assimilate_storage(&mut t)
