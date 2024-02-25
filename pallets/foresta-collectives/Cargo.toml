@@ -17,11 +17,17 @@ codec = { package = "parity-scale-codec", version = "3.6.1", default-features = 
     "derive",
 ] }
 scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.163", features = ["derive"], default-features = false }
 frame-benchmarking = { workspace = true}
 frame-support = { workspace = true}
 frame-system = { workspace = true}
 sp-std = { workspace = true}
 sp-runtime = { workspace = true}
+pallet-balances = { workspace = true }
+pallet-assets = { workspace = true }
+pallet-uniques = { workspace = true }
+pallet-membership = { workspace = true }
+pallet-timestamp = { workspace = true }
 pallet-carbon-credits = { workspace = true }
 
 
@@ -33,10 +39,16 @@ sp-io = { workspace = true}
 default = ["std"]
 std = [
 	"codec/std",
+	"serde/std",
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
 	"scale-info/std",
+	'pallet-assets/std',
+    'pallet-balances/std',
+    'pallet-uniques/std',
+    'pallet-membership/std',
+    'pallet-timestamp/std',
 	'sp-std/std',
 	'pallet-carbon-credits/std',
 ]

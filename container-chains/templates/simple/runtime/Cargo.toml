@@ -16,6 +16,7 @@ parity-scale-codec = { workspace = true, features = [ "derive" ] }
 scale-info = { workspace = true, features = [ "derive" ] }
 serde = { workspace = true, optional = true, features = [ "derive" ] }
 smallvec = { workspace = true }
+getrandom = {workspace = true}
 
 # Local
 pallet-cc-authorities-noting = { workspace = true }
@@ -98,7 +99,7 @@ pallet-foresta-collectives = { workspace = true }
 
 
 # Local Dependencies
-bitgreen-primitives = { package = "bitgreen-primitives", path = "../../../../primitives/btg_primitives", default-features = false }
+primitives = { package = "bitgreen-primitives", path = "../../../../primitives/btg_primitives", default-features = false }
 
 
 [build-dependencies]
@@ -171,7 +172,8 @@ std = [
 	"pallet-carbon-credits/std",
 	"pallet-carbon-credits-pool/std",
 	"pallet-kyc/std",
-	"pallet-general-storage/std"
+	"pallet-general-storage/std",
+	"pallet-foresta-collectives/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)

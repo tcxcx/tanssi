@@ -28,7 +28,7 @@ use sp_version::NativeVersion;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
-pub use bitgreen_primitives::{
+pub use primitives::{
     currency::*,
 };
 

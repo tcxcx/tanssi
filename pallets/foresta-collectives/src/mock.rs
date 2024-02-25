@@ -1,18 +1,36 @@
 use crate as pallet_foresta_collectives;
-use frame_support::traits::{ConstU16, ConstU64};
-use sp_core::H256;
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage,
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{
+	parameter_types,
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32},
+	PalletId,
 };
 
+use frame_system::{EnsureRoot, EnsureSigned};
+use scale_info::TypeInfo;
+use sp_core::{ConstU16, ConstU64, H256};
+use sp_runtime::{
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+	BuildStorage,
+};
+use sp_std::convert::{TryFrom, TryInto};
+
 type Block = frame_system::mocking::MockBlock<Test>;
+
+type Balance = u128;
+pub type BlockNumber = u32;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
 	pub enum Test
 	{
 		System: frame_system,
+		Balances: pallet_balances,
+		Assets: pallet_assets,
+		KYCMembership: pallet_membership,
+		Uniques: pallet_uniques,
+		Timestamp: pallet_timestamp,
+		CarbonCredits: pallet_carbon_credits,
 		ForestaCollectives: pallet_foresta_collectives,
 	}
 );
@@ -34,7 +52,7 @@ impl frame_system::Config for Test {
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>; 
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -43,12 +61,155 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_foresta_collectives::Config for Test {
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+}
+
+impl pallet_balances::Config for Test {
+	type AccountStore = System;
+	type Balance = u128;
+	type DustRemoval = ();
 	type RuntimeEvent = RuntimeEvent;
+	type ExistentialDeposit = ExistentialDeposit;
+	type MaxLocks = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type FreezeIdentifier = ();
+	type MaxHolds = ConstU32<0>;
+	type MaxFreezes = ConstU32<0>;
+}
+
+impl pallet_assets::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u32;
+	type AssetIdParameter = u32;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type AssetDeposit = ConstU128<0>;
+	type AssetAccountDeposit = ConstU128<0>;
+	type MetadataDepositBase = ConstU128<0>;
+	type MetadataDepositPerByte = ConstU128<0>;
+	type ApprovalDeposit = ConstU128<0>;
+	type StringLimit = ConstU32<50>;
+	type Freezer = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Test {
+	type MinimumPeriod = MinimumPeriod;
+	type Moment = u64;
+	type OnTimestampSet = ();
+	type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MarketplaceEscrowAccount : u64 = 10;
+  pub const CarbonCreditsPalletId: PalletId = PalletId(*b"bitg/ccp");
+  pub CarbonCreditsPalletAcccount : u64 = PalletId(*b"bitg/ccp").into_account_truncating();
+  #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, MaxEncodedLen, TypeInfo, Debug)]
+  pub const MaxGroupSize: u32 = 10;
+}
+
+impl pallet_carbon_credits::Config for Test {
+	type AssetHandler = Assets;
+	type AssetId = u32;
+	type Balance = u128;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type ItemId = u32;
+	type ProjectId = u32;
+	type GroupId = u32;
+	type KYCProvider = KYCMembership;
+	type MarketplaceEscrow = MarketplaceEscrowAccount;
+	type MaxAuthorizedAccountCount = ConstU32<2>;
+	type MaxDocumentCount = ConstU32<2>;
+	type MaxGroupSize = MaxGroupSize;
+	type MaxIpfsReferenceLength = ConstU32<20>;
+	type MaxLongStringLength = ConstU32<100>;
+	type MaxCoordinatesLength = ConstU32<8>;
+	type MaxRoyaltyRecipients = ConstU32<5>;
+	type MaxShortStringLength = ConstU32<20>;
+	type MinProjectId = ConstU32<1000>;
+	type NFTHandler = Uniques;
+	type PalletId = CarbonCreditsPalletId;
+	type WeightInfo = ();
+}
+
+impl pallet_uniques::Config for Test {
+	type AttributeDepositBase = ConstU128<1>;
+	type CollectionDeposit = ConstU128<0>;
+	type CollectionId = u32;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
+	type Currency = Balances;
+	type DepositPerByte = ConstU128<1>;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type ItemDeposit = ConstU128<0>;
+	type ItemId = u32;
+	type KeyLimit = ConstU32<50>;
+	type Locker = ();
+	type MetadataDepositBase = ConstU128<1>;
+	type StringLimit = ConstU32<50>;
+	type ValueLimit = ConstU32<50>;
+	type WeightInfo = ();
+}
+
+impl pallet_membership::Config for Test {
+	type AddOrigin = EnsureRoot<u64>;
+	type RuntimeEvent = RuntimeEvent;
+	type MaxMembers = ConstU32<10>;
+	type MembershipChanged = ();
+	type MembershipInitialized = ();
+	type PrimeOrigin = EnsureRoot<u64>;
+	type RemoveOrigin = EnsureRoot<u64>;
+	type ResetOrigin = EnsureRoot<u64>;
+	type SwapOrigin = EnsureRoot<u64>;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const blocknumbers : BlockNumber = 100;
+  }
+
+impl pallet_foresta_collectives::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+    type KYCProvider = KYCMembership;
+    type CollectiveId = u32;
+    type MaxNumManagers = ConstU32<5>;
+    type MaxStringLength = ConstU32<64>;
+    type MaxConcurrentVotes = ConstU32<5>;
+    type MaxProjectsPerCollective = ConstU32<5>;
+    type VotingDuration = blocknumbers;
+    type ForceOrigin =  frame_system::EnsureRoot<u64>;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+	pallet_membership::GenesisConfig::<Test> {
+		members: sp_core::bounded_vec![1, 3, 10],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext: sp_io::TestExternalities = t.into();
+	// set to block 1 to test events
+	ext.execute_with(|| System::set_block_number(1));
+	ext
 }
+

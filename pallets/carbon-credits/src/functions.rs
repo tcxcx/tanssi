@@ -17,7 +17,7 @@ use frame_support::{
 	},
 	BoundedBTreeMap,
 };
-use bitgreen_primitives::BatchRetireData;
+use primitives::BatchRetireData;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Zero};
 use sp_std::{cmp, convert::TryInto, vec::Vec};
 

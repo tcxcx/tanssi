@@ -1817,6 +1817,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "getrandom 0.2.11",
  "hex-literal 0.3.4",
  "log",
  "nimbus-primitives",
@@ -7589,7 +7590,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
- "pallet-membership",
+ "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0)",
  "pallet-timestamp",
  "pallet-uniques",
  "parity-scale-codec",
@@ -7613,7 +7614,7 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-carbon-credits",
- "pallet-membership",
+ "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0)",
  "pallet-timestamp",
  "pallet-uniques",
  "parity-scale-codec",
@@ -8089,9 +8090,15 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-assets",
+ "pallet-balances",
  "pallet-carbon-credits",
+ "pallet-membership 4.0.0-dev (git+https://github.com/moondance-labs/polkadot-sdk?branch=tanssi-polkadot-v1.3.0)",
+ "pallet-timestamp",
+ "pallet-uniques",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -8297,6 +8304,23 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm-primitives",
+]
+
+[[package]]
+name = "pallet-membership"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0#c8d2251cafadc108ba2f1f8a3208dc547ff38901"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -11251,7 +11275,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership",
+ "pallet-membership 4.0.0-dev (git+https://github.com/moondance-labs/polkadot-sdk?branch=tanssi-polkadot-v1.3.0)",
  "pallet-message-queue",
  "pallet-mmr",
  "pallet-multisig",
@@ -16181,7 +16205,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership",
+ "pallet-membership 4.0.0-dev (git+https://github.com/moondance-labs/polkadot-sdk?branch=tanssi-polkadot-v1.3.0)",
  "pallet-message-queue",
  "pallet-mmr",
  "pallet-multisig",

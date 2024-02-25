@@ -20,7 +20,7 @@ pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-carbon-credits = { package = 'pallet-carbon-credits', path = '../carbon-credits', default-features = false }
 pallet-uniques = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-bitgreen_primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
+primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
@@ -32,7 +32,7 @@ pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch 
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 
 [dev-dependencies]
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.188", features = ["derive"], default-features = false }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 
 [features]

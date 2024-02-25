@@ -625,7 +625,7 @@ pub mod pallet {
 }
 
 /// Struct to verify if a given asset_id is representing a carbon credit project
-impl<T: Config> bitgreen_primitives::CarbonCreditsValidator for Pallet<T> {
+impl<T: Config> primitives::CarbonCreditsValidator for Pallet<T> {
 	type ProjectId = T::ProjectId;
 	type Address = T::AccountId;
 	type GroupId = T::GroupId;

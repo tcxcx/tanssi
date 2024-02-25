@@ -4,7 +4,7 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{pallet_prelude::*, BoundedBTreeMap};
 use frame_system::pallet_prelude::BlockNumberFor;
-use bitgreen_primitives::{
+use primitives::{
 	Batch, BatchGroup, BatchRetireData, ProjectType, RegistryDetails, Royalty, SDGDetails,
 };
 

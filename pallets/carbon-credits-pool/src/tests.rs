@@ -177,7 +177,7 @@ pub fn create_project_and_mint<T: Config>(
 		authorised_account
 	));
 	assert_ok!(CarbonCredits::approve_project(
-		RawOrigin::Signed(authorised_account).into(),
+		RawOrigin::Root.into(),
 		project_id,
 		true
 	),);
