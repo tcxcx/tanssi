@@ -8113,6 +8113,7 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-carbon-credits",
+ "pallet-carbon-credits-pool",
  "pallet-membership 4.0.0-dev (git+https://github.com/moondance-labs/polkadot-sdk?branch=tanssi-polkadot-v1.3.0)",
  "pallet-timestamp",
  "pallet-uniques",

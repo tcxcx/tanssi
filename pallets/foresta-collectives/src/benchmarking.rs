@@ -12,24 +12,13 @@ mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn do_something() {
-		let value = 100u32.into();
-		let caller: T::AccountId = whitelisted_caller();
+	fn add_collective() {
 		#[extrinsic_call]
-		do_something(RawOrigin::Signed(caller), value);
+		add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap());
 
-		assert_eq!(Something::<T>::get(), Some(value));
 	}
 
-	#[benchmark]
-	fn cause_error() {
-		Something::<T>::put(100u32);
-		let caller: T::AccountId = whitelisted_caller();
-		#[extrinsic_call]
-		cause_error(RawOrigin::Signed(caller));
-
-		assert_eq!(Something::<T>::get(), Some(101u32));
-	}
 
 	impl_benchmark_test_suite!(Template, crate::mock::new_test_ext(), crate::mock::Test);
 }
