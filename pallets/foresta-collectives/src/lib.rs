@@ -53,6 +53,15 @@ pub mod pallet {
 		pub project_id: <T as pallet_carbon_credits::Config>::ProjectId,
 	}
 
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct CCParams<T:Config> {
+		pub project_details: pallet_carbon_credits::ProjectDetail<T>,
+		pub item_id: <T as pallet_carbon_credits::Config>::ItemId,
+		pub asset_id: <T as pallet_carbon_credits::Config>::AssetId,
+		pub retired_carbon_credits_data: pallet_carbon_credits::RetiredCarbonCreditsData<T>,
+	}
+
 	#[derive(Clone, Encode, Decode, PartialEq, Debug,MaxEncodedLen, TypeInfo, Eq, Copy)]
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 	pub enum MembershipStatus {
@@ -82,6 +91,10 @@ pub mod pallet {
 		ProjectApproval,
 		ProjectRemoval,
 		PoolCreation,
+		SetProjectStorage,
+		SetNextItemId,
+		SetNextAssetId,
+		SetRetiredCarbonCredit,
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -243,7 +256,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_project_vote)]
-	pub type ProjectVote<T: Config> = StorageMap<
+	pub(super) type ProjectVote<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		T::VoteId,
@@ -364,6 +377,37 @@ pub mod pallet {
 					ProjectApprovalVote::<T>::insert(c_id,p_id,&vote);
 					
 				}
+			}
+
+			let approval = ProjectVoting::<T>::take(n);
+
+			for v_id in approval.iter() {
+				weight = weight.saturating_add(T::DbWeight::get().reads_writes(2, 2));
+				let vote = ProjectVote::<T>::take(v_id);
+
+				if let Some(mut vote) = vote {
+					let mut is_approved: bool = false;
+					if vote.yes_votes > vote.no_votes {
+						vote.status = VoteStatus::Passed;
+						is_approved = true;						
+					} else {
+						vote.status = VoteStatus::Failed;						
+					}
+
+					match vote.vote_type {
+						VoteType::ProjectApproval => {
+							let _ = Self::do_approve_project(vote.collective_id,vote.project_id,is_approved);
+						},
+						VoteType::ProjectRemoval => {
+							let _ = Self::do_remove_project(vote.collective_id,vote.project_id);	
+						},
+						_ => ()
+					}
+
+					ProjectVote::<T>::insert(v_id,&vote);
+
+				}
+
 			}
 
 			weight
@@ -575,10 +619,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(6)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn create_pool() -> DispatchResult {
-
+		pub fn create_pool(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			// Check if member
 			Ok(())
 		}
 
@@ -602,6 +647,16 @@ pub mod pallet {
 			})?; 
 			Ok(())
 		}
+
+		pub fn do_remove_project(collective_id: T::CollectiveId,
+			project_id: <T as pallet_carbon_credits::Config>::ProjectId) -> DispatchResult {
+				pallet_carbon_credits::Pallet::<T>::force_remove_project(frame_system::RawOrigin::Root.into(),project_id)?;
+				let mut projects = ApprovedProjects::<T>::get(collective_id);
+
+				projects.retain(|x| *x != project_id);
+
+				Ok(())
+			}
 
 		pub fn do_authorize_account(account: T::AccountId) -> DispatchResult {
 			pallet_carbon_credits::Pallet::<T>::force_add_authorized_account(frame_system::RawOrigin::Root.into(),account)?;
