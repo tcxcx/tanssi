@@ -62,6 +62,18 @@ pub mod pallet {
 		pub retired_carbon_credits_data: pallet_carbon_credits::RetiredCarbonCreditsData<T>,
 	}
 
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
+	pub struct PoolParams<T:Config> {
+		id: <T as pallet_carbon_credits_pool::Config>::PoolId,
+		admin: T::AccountId,
+		config: pallet_carbon_credits_pool::PoolConfigOf<T>,
+		max_limit: Option<u32>,
+		asset_symbol: pallet_carbon_credits_pool::SymbolStringOf<T>,
+	}
+
+	
+
 	#[derive(Clone, Encode, Decode, PartialEq, Debug,MaxEncodedLen, TypeInfo, Eq, Copy)]
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 	pub enum MembershipStatus {
@@ -99,7 +111,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_carbon_credits::Config {
+	pub trait Config: frame_system::Config + pallet_carbon_credits::Config + pallet_carbon_credits_pool::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
@@ -263,6 +275,17 @@ pub mod pallet {
 		Vote<T>,
 		OptionQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_pool_params_info)]
+	pub(super) type PoolParamsInfo<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::VoteId,
+		PoolParams<T>,
+		OptionQuery,
+	>;
+	
 	
 
 	#[pallet::storage]
@@ -350,7 +373,9 @@ pub mod pallet {
 		/// Max Projects Exceeded
 		MaxProjectsExceeded,
 		/// Wrong Vote Type
-		WrongVoteType
+		WrongVoteType,
+		/// Params Not Found
+		ParamsNotFound,
 	}
 
 	#[pallet::hooks]
@@ -399,7 +424,10 @@ pub mod pallet {
 							let _ = Self::do_approve_project(vote.collective_id,vote.project_id,is_approved);
 						},
 						VoteType::ProjectRemoval => {
-							let _ = Self::do_remove_project(vote.collective_id,vote.project_id);	
+							let _ = Self::do_remove_project(vote.collective_id,vote.project_id,is_approved);	
+						},
+						VoteType::PoolCreation => {
+							let _ = Self::do_create_pool(*v_id,is_approved);	
 						},
 						_ => ()
 					}
@@ -528,7 +556,7 @@ pub mod pallet {
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn project_approval_removal_vote(origin: OriginFor<T>,vote_id: T::VoteId, 
+		pub fn cast_vote(origin: OriginFor<T>,vote_id: T::VoteId, 
 		vote_cast: bool) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// Get vote
@@ -536,7 +564,12 @@ pub mod pallet {
 			let collective_id = vote.collective_id;
 			let project_id = vote.project_id;
 			// Check if member
-			ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
+			if collective_id == 0.into() {
+				Self::check_kyc_approval(&who)?;// Applicable to all KYC'd members of any collective
+			} else {
+				ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
+			}
+			
 			
 			// Check if vote is in progress
 			ensure!(vote.status == VoteStatus::InProgress, Error::<T>::VoteNotInProgress);
@@ -621,9 +654,50 @@ pub mod pallet {
 
 		#[pallet::call_index(7)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn create_pool(origin: OriginFor<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+		pub fn init_create_pool(origin: OriginFor<T>, id: <T as pallet_carbon_credits_pool::Config>::PoolId,
+			admin: T::AccountId,
+			config: pallet_carbon_credits_pool::PoolConfigOf<T>,
+			max_limit: Option<u32>,
+			asset_symbol: pallet_carbon_credits_pool::SymbolStringOf<T>) -> DispatchResult {
+
+			let member = ensure_signed(origin)?;
 			// Check if member
+			Self::check_kyc_approval(&member)?;
+
+			let uid = Self::votes_count();
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			let current_block = <frame_system::Pallet<T>>::block_number();
+
+			let final_block = current_block + T::VotingDuration::get();
+
+			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+				projects.try_push(uid2).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				Ok::<(),DispatchError>(())
+			})?; 
+
+			let vote_info = Vote::<T> {
+				yes_votes: 0,
+				no_votes: 0,
+				end: final_block,
+				status: VoteStatus::InProgress,
+				vote_type: VoteType::PoolCreation,
+				collective_id: 0.into(),
+				project_id: 0.into(),
+			};
+
+			ProjectVote::<T>::insert(uid2,&vote_info);
+
+			let pool_params_info = PoolParams::<T> {
+				id: id,
+				admin: admin,
+				config: config,
+				max_limit: max_limit,
+				asset_symbol: asset_symbol,
+			};
+
+			PoolParamsInfo::<T>::insert(uid2,&pool_params_info);
+
+
 			Ok(())
 		}
 
@@ -649,14 +723,28 @@ pub mod pallet {
 		}
 
 		pub fn do_remove_project(collective_id: T::CollectiveId,
-			project_id: <T as pallet_carbon_credits::Config>::ProjectId) -> DispatchResult {
-				pallet_carbon_credits::Pallet::<T>::force_remove_project(frame_system::RawOrigin::Root.into(),project_id)?;
-				let mut projects = ApprovedProjects::<T>::get(collective_id);
+			project_id: <T as pallet_carbon_credits::Config>::ProjectId, is_approved: bool) -> DispatchResult {
+				if is_approved == true {
+					pallet_carbon_credits::Pallet::<T>::force_remove_project(frame_system::RawOrigin::Root.into(),project_id)?;
+					let mut projects = ApprovedProjects::<T>::get(collective_id);
 
-				projects.retain(|x| *x != project_id);
+					projects.retain(|x| *x != project_id);
+
+				}
 
 				Ok(())
+		}
+
+		pub fn do_create_pool(vote_id: T::VoteId, is_approved: bool) ->DispatchResult {
+			if is_approved == true {
+				let params = Self::get_pool_params_info(vote_id).ok_or(Error::<T>::ParamsNotFound)?;
+				let _ = pallet_carbon_credits_pool::Pallet::<T>::create(frame_system::RawOrigin::Root.into(),
+				params.id,params.admin,params.config,params.max_limit,params.asset_symbol);
+					
 			}
+
+			Ok(())
+		}
 
 		pub fn do_authorize_account(account: T::AccountId) -> DispatchResult {
 			pallet_carbon_credits::Pallet::<T>::force_add_authorized_account(frame_system::RawOrigin::Root.into(),account)?;
