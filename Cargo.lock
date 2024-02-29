@@ -1821,6 +1821,8 @@ dependencies = [
  "hex-literal 0.3.4",
  "log",
  "nimbus-primitives",
+ "orml-tokens",
+ "orml-traits",
  "pallet-assets",
  "pallet-async-backing",
  "pallet-author-inherent",
@@ -1828,6 +1830,7 @@ dependencies = [
  "pallet-carbon-credits",
  "pallet-carbon-credits-pool",
  "pallet-cc-authorities-noting",
+ "pallet-dex",
  "pallet-foresta-collectives",
  "pallet-foresta-ocw",
  "pallet-general-storage",
@@ -7268,6 +7271,62 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-tokens"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "orml-traits",
+ "pallet-elections-phragmen",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "orml-traits"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "impl-trait-for-tuples",
+ "num-traits",
+ "orml-utilities",
+ "parity-scale-codec",
+ "paste",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "staging-xcm",
+]
+
+[[package]]
+name = "orml-utilities"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-asset-rate"
 version = "4.0.0-dev"
 source = "git+https://github.com/moondance-labs/polkadot-sdk?branch=tanssi-polkadot-v1.3.0#5da8ffe3dd2f42856ea12328db1b2129bcb49992"
@@ -7609,7 +7668,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
- "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0)",
+ "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0)",
  "pallet-timestamp",
  "pallet-uniques",
  "parity-scale-codec",
@@ -7633,7 +7692,7 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-carbon-credits",
- "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0)",
+ "pallet-membership 4.0.0-dev (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0)",
  "pallet-timestamp",
  "pallet-uniques",
  "parity-scale-codec",
@@ -7830,6 +7889,28 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-dex"
+version = "0.0.1"
+dependencies = [
+ "bitgreen-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-carbon-credits",
+ "parity-scale-codec",
+ "scale-info",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -8348,7 +8429,7 @@ dependencies = [
 [[package]]
 name = "pallet-membership"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.1.0#c8d2251cafadc108ba2f1f8a3208dc547ff38901"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#c8d2251cafadc108ba2f1f8a3208dc547ff38901"
 dependencies = [
  "frame-benchmarking",
  "frame-support",

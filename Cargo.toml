@@ -65,10 +65,13 @@ dc-orchestrator-chain-interface = { git = "https://github.com/moondance-labs/dan
 # Custom pallets
 pallet-carbon-credits = { path = "pallets/carbon-credits", default-features = false }
 pallet-carbon-credits-pool = { path = "pallets/carbon-credits-pool", default-features = false }
+pallet-dex = { path = "pallets/dex", default-features = false }
 pallet-kyc = { path = "pallets/kyc", default-features = false }
 pallet-general-storage = { path = "pallets/general-storage", default-features = false }
 pallet-foresta-collectives = { path = "pallets/foresta-collectives", default-features = false }
 pallet-foresta-ocw = { path = "pallets/foresta-ocw", default-features = false }
+orml-tokens = {path = "pallets/orml-tokens",  version = "0.4.1-dev", default-features = false}
+orml-traits = {path = "pallets/orml-traits",  version = "0.4.1-dev", default-features = false}
 
 # Moonkit (wasm)
 nimbus-consensus = { git = "https://github.com/moondance-labs/moonkit", branch = "tanssi-polkadot-v1.3.0" }

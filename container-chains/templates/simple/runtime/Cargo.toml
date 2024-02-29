@@ -93,10 +93,13 @@ pallet-uniques = { workspace = true }
 	# Custom Pallets
 pallet-carbon-credits = { workspace = true }
 pallet-carbon-credits-pool = { workspace = true }
+pallet-dex = { workspace = true }
 pallet-kyc = { workspace = true }
 pallet-general-storage = { workspace = true }
 pallet-foresta-collectives = { workspace = true }
 pallet-foresta-ocw = { workspace = true }
+orml-tokens = { workspace = true }
+orml-traits = { workspace = true }
 
 
 # Local Dependencies
@@ -172,9 +175,12 @@ std = [
 	"pallet-uniques/std",
 	"pallet-carbon-credits/std",
 	"pallet-carbon-credits-pool/std",
+	"pallet-dex/std",
 	"pallet-kyc/std",
 	"pallet-general-storage/std",
 	"pallet-foresta-collectives/std",
+	"orml-tokens/std",
+	"orml-traits/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)

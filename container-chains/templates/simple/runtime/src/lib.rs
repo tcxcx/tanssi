@@ -29,7 +29,7 @@ use sp_version::NativeVersion;
 pub use sp_runtime::BuildStorage;
 
 pub use primitives::{
-    currency::*,
+    currency::*, Amount
 };
 
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
@@ -71,14 +71,15 @@ use {
     sp_core::{MaxEncodedLen, OpaqueMetadata},
     sp_runtime::{
         create_runtime_str, generic, impl_opaque_keys,
-        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, ConvertInto},
+        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, ConvertInto, One},
         transaction_validity::{TransactionSource, TransactionValidity},
-        ApplyExtrinsicResult, MultiSignature,
+        ApplyExtrinsicResult, MultiSignature, Percent
     },
     sp_std::prelude::*,
     sp_version::RuntimeVersion,
 };
 use sp_runtime::SaturatedConversion;
+use orml_traits::parameter_type_with_key;
 
 pub mod xcm_config;
 
@@ -358,10 +359,11 @@ impl pallet_timestamp::Config for Runtime {
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+    pub const MaxLocks: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
-    type MaxLocks = ConstU32<50>;
+    type MaxLocks = MaxLocks;
     /// The type for recording an account's balance.
     type Balance = Balance;
     /// The ubiquitous event type.
@@ -393,6 +395,53 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
 }
+
+parameter_types! {
+	pub const DexPalletId: PalletId = PalletId(*b"bitg/dex");
+	pub const MinUnitsToCreateSellOrder : u32 = 100;
+	pub const MinPricePerUnit : u32 = 1;
+	pub const MaxPaymentFee : Percent = Percent::from_percent(10);
+	pub const MaxPurchaseFee : Balance = 10 * UNIT;
+	#[derive(Clone, scale_info::TypeInfo)]
+	pub const MaxValidators : u32 = 10;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxTxHashLen : u32 = 1000;
+	#[derive(Clone, scale_info::TypeInfo)]
+	pub const BuyOrderExpiryTime : u32 = HOURS;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxAddressLen : u32 = 1000;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxOrderIds : u32 = 100;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxPayoutsToStore : u32 = 1000;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxOpenOrdersPerUser : u32 = 10;
+}
+
+impl pallet_dex::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Asset = Assets;
+	type Currency = Tokens;
+	type CurrencyBalance = u128;
+	type AssetBalance = u128;
+	type PalletId = DexPalletId;
+	type AssetValidator = CarbonCredits;
+	type MinPricePerUnit = MinPricePerUnit;
+	type MaxValidators = MaxValidators;
+	type MaxTxHashLen = MaxTxHashLen;
+	type KYCProvider = KYCPallet;
+	type BuyOrderExpiryTime = BuyOrderExpiryTime;
+	type MinUnitsToCreateSellOrder = MinUnitsToCreateSellOrder;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type MaxPaymentFee = MaxPaymentFee;
+	type MaxPurchaseFee = MaxPurchaseFee;
+	type MaxAddressLen = MaxAddressLen;
+	type MaxOrderIds = MaxOrderIds;
+	type MaxPayoutsToStore = MaxPayoutsToStore;
+	type MaxOpenOrdersPerUser = MaxOpenOrdersPerUser;
+	type WeightInfo = ();
+}
+
 
 // New Pallets impl added to template
 
@@ -558,6 +607,34 @@ impl pallet_general_storage::Config for Runtime {
 	type MaxKeyLength = MaxKeyLength;
 	type MaxValueLength = MaxValueLength;
 	type DepositPerByte = DepositPerByte;
+}
+
+// orml pallets
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: primitives::CurrencyId| -> Balance {
+		One::one()
+	};
+}
+
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+	fn contains(_a: &AccountId) -> bool {
+		false
+	}
+}
+
+impl orml_tokens::Config for Runtime {
+	type Amount = Amount;
+	type Balance = Balance;
+	type CurrencyId = primitives::CurrencyId;
+	type DustRemovalWhitelist = DustRemovalWhitelist;
+	type RuntimeEvent = RuntimeEvent;
+	type ExistentialDeposits = ExistentialDeposits;
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxLocks;
+	type ReserveIdentifier = [u8; 8];
+	type CurrencyHooks = ();
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -991,6 +1068,9 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment = 11,
         Assets: pallet_assets = 12,
 
+        // orml pallets
+		Tokens: orml_tokens = 41,
+
         // ContainerChain Author Verification
         AuthoritiesNoting: pallet_cc_authorities_noting = 50,
         AuthorInherent: pallet_author_inherent = 51,
@@ -1010,6 +1090,7 @@ construct_runtime!(
 		KYCPallet: pallet_kyc::{Pallet, Call, Storage, Config<T>, Event<T>} = 83,
 		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 84,
 		GeneralStorage: pallet_general_storage::{Pallet, Call, Storage, Event<T>} = 85,
+        Dex: pallet_dex = 86,
 
         // Governance
         ForestaCollectives: pallet_foresta_collectives = 91,
