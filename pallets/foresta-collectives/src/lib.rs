@@ -487,8 +487,7 @@ pub mod pallet {
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId,
-		metadata: BoundedVec<u8,T::MaxStringLength>) -> DispatchResult {
+		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(!Members::<T>::contains_key(collective_id.clone(),&member.clone()), Error::<T>::MemberAlreadyExists);
 			let managers = Managers::<T>::get(collective_id.clone());

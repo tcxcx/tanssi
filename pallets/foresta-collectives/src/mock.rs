@@ -31,6 +31,7 @@ frame_support::construct_runtime!(
 		Uniques: pallet_uniques,
 		Timestamp: pallet_timestamp,
 		CarbonCredits: pallet_carbon_credits,
+		CarbonCreditsPool: pallet_carbon_credits_pool,
 		ForestaCollectives: pallet_foresta_collectives,
 	}
 );
@@ -147,6 +148,24 @@ impl pallet_carbon_credits::Config for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const CarbonCreditPoolsPalletId: PalletId = PalletId(*b"bit/ccpp");
+}
+
+impl pallet_carbon_credits_pool::Config for Test {
+	type AssetHandler = Assets;
+	type RuntimeEvent = RuntimeEvent;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type MaxAssetSymbolLength = ConstU32<20>;
+	type MaxIssuanceYearCount = ConstU32<20>;
+	type MaxProjectIdList = ConstU32<100>;
+	type MaxRegistryListCount = ConstU32<2>;
+	type MinPoolId = ConstU32<10000>;
+	type PalletId = CarbonCreditPoolsPalletId;
+	type PoolId = u32;
+	type WeightInfo = ();
+}
+
 impl pallet_uniques::Config for Test {
 	type AttributeDepositBase = ConstU128<1>;
 	type CollectionDeposit = ConstU128<0>;
@@ -188,6 +207,7 @@ impl pallet_foresta_collectives::Config for Test {
     type WeightInfo = ();
     type KYCProvider = KYCMembership;
     type CollectiveId = u32;
+	type VoteId = u32;
     type MaxNumManagers = ConstU32<5>;
     type MaxStringLength = ConstU32<64>;
     type MaxConcurrentVotes = ConstU32<5>;

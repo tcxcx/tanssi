@@ -75,9 +75,6 @@ use sp_runtime::offchain::{
 };
 use sp_std::vec::Vec;
 
-#[cfg(test)]
-mod tests;
-
 /// Defines application identifier for crypto keys of this module.
 ///
 /// Every module that deals with signatures needs to declare its unique identifier for its crypto
