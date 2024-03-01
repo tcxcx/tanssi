@@ -235,38 +235,6 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_project_approval_voting)]
-	pub type ProjectApprovalVoting<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		BlockNumberFor<T>,
-		BoundedVec<(T::CollectiveId,<T as pallet_carbon_credits::Config>::ProjectId), T::MaxConcurrentVotes>,
-		ValueQuery,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_project_removal_voting)]
-	pub type ProjectRemovalVoting<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		BlockNumberFor<T>,
-		BoundedVec<(T::CollectiveId,<T as pallet_carbon_credits::Config>::ProjectId), T::MaxConcurrentVotes>,
-		ValueQuery,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_project_approval_vote)]
-	pub(super) type ProjectApprovalVote<T:Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::CollectiveId,
-		Blake2_128Concat,
-		<T as pallet_carbon_credits::Config>::ProjectId,
-		Vote<T>,
-		OptionQuery,
-	>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn get_project_vote)]
 	pub(super) type ProjectVote<T: Config> = StorageMap<
 		_,
@@ -284,20 +252,6 @@ pub mod pallet {
 		T::VoteId,
 		PoolParams<T>,
 		OptionQuery,
-	>;
-	
-	
-
-	#[pallet::storage]
-	#[pallet::getter(fn check_project_approval_vote)]
-	pub(super) type CheckProjectApprovalVote<T:Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		Blake2_128Concat,
-		<T as pallet_carbon_credits::Config>::ProjectId,
-		bool,
-		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -382,27 +336,6 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
 			let mut weight = T::DbWeight::get().reads_writes(1, 1);
-
-			let approval_vote = ProjectApprovalVoting::<T>::take(n);
-
-			for (c_id,p_id) in approval_vote.iter() {
-				weight = weight.saturating_add(T::DbWeight::get().reads_writes(2, 2));
-				let vote = ProjectApprovalVote::<T>::take(c_id,p_id);
-				let mut is_approved: bool = false;
-				if let Some(mut vote) = vote {
-					if vote.yes_votes > vote.no_votes {
-						vote.status = VoteStatus::Passed;						
-						is_approved = true;
-					} else {
-						vote.status = VoteStatus::Failed;						
-					}
-
-					let _ = Self::do_approve_project(*c_id,*p_id,is_approved);
-
-					ProjectApprovalVote::<T>::insert(c_id,p_id,&vote);
-					
-				}
-			}
 
 			let approval = ProjectVoting::<T>::take(n);
 
@@ -590,68 +523,6 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn init_project_approval(origin: OriginFor<T>, collective_id: T::CollectiveId, 
-		project_id: <T as pallet_carbon_credits::Config>::ProjectId) -> DispatchResult {
-			
-			let who = ensure_signed(origin)?;
-			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
-
-			let current_block = <frame_system::Pallet<T>>::block_number();
-
-			let final_block = current_block + T::VotingDuration::get();
-
-			ProjectApprovalVoting::<T>::try_mutate(final_block, |projects| {
-				projects.try_push((collective_id,project_id)).map_err(|_| Error::<T>::MaxVotingExceeded)?;
-				Ok::<(),DispatchError>(())
-			})?; 
-
-			let vote_info = Vote::<T> {
-				yes_votes: 0,
-				no_votes: 0,
-				end: final_block,
-				status: VoteStatus::InProgress,
-				vote_type: VoteType::ProjectApproval,
-				collective_id: collective_id,
-				project_id: project_id,
-			};
-
-			ProjectApprovalVote::<T>::insert(collective_id,project_id,&vote_info);
-
-			Self::deposit_event(Event::ProjectApprovalInit{ collective_id, project_id });
-
-			Ok(())
-		}
-
-		#[pallet::call_index(6)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
-		pub fn project_approval_vote(origin: OriginFor<T>,collective_id: T::CollectiveId, 
-		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_cast: bool) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			// Check if member
-			ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
-			// Get vote
-			let mut vote = Self::get_project_approval_vote(collective_id,project_id).ok_or(Error::<T>::VoteNotFound)?;
-			// Check if vote is in progress
-			ensure!(vote.status == VoteStatus::InProgress, Error::<T>::VoteNotInProgress);
-			// Check if member has already voted
-			ensure!(!Self::check_project_approval_vote(who.clone(),project_id), Error::<T>::AlreadyVoted);
-
-			if vote_cast {
-				vote.yes_votes = vote.yes_votes + 1;
-			} else {
-				vote.no_votes = vote.no_votes + 1;
-			}
-
-			ProjectApprovalVote::<T>::insert(collective_id,project_id,vote);
-			CheckProjectApprovalVote::<T>::insert(who.clone(),project_id,true);
-
-			Self::deposit_event(Event::ProjectApprovalVoteCast{ collective_id, project_id });
-			
-			Ok(())
-		}
-
-		#[pallet::call_index(7)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
 		pub fn init_create_pool(origin: OriginFor<T>, id: <T as pallet_carbon_credits_pool::Config>::PoolId,
 			admin: T::AccountId,

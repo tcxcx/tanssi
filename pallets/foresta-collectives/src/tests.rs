@@ -1,4 +1,4 @@
-use crate::{mock::*, Config, Error};
+use crate::{mock::*, Config, Error, VoteType};
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::tokens::fungibles::{metadata::Inspect as MetadataInspect, Inspect},
@@ -147,6 +147,28 @@ where
 	creation_params
 }
 
+pub fn create_project<T: Config>(
+	originator_account: u64,
+	batch: bool,
+) {
+	let mut creation_params = get_default_creation_params::<Test>();
+	let project_id = 0;
+	let group_id = 0;
+	if batch {
+		// replace the default with mutiple batches
+		let created_batch_list = get_multiple_batch_group::<Test>();
+		creation_params.batch_groups = created_batch_list;
+	}
+
+	let authorised_account = 10;
+
+	assert_ok!(CarbonCredits::create(
+		RawOrigin::Signed(originator_account).into(),
+		creation_params
+	));
+
+}
+
 
 #[test]
 fn it_works_for_add_collective() {
@@ -184,8 +206,40 @@ fn it_works_for_add_collective_and_manager_adds_member() {
 }
 
 #[test]
+fn it_works_for_join_collective() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+
+		let applicant = 1;
+
+		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(applicant).into(),1));
+	});
+}
+
+#[test]
 fn it_works_for_init_project_approval_vote() {
 	new_test_ext().execute_with(|| {
+		let manager = 1;
+		// Root creates collective and adds user 1 as the manager
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
 
+		let member = 2;
+		let project_id = 0;
+		let group_id = 0;
+		let collective_id = 1;
+
+		// Manager adds user 2 as a member of the collective
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(1).into(),1,member));
+
+		// User 1 creates a project
+
+		create_project::<Test>(manager, false);
+
+		// init project approval
+
+		assert_ok!(ForestaCollectives::init_project_approval_removal(RawOrigin::Signed(member).into(),collective_id,
+		project_id,VoteType::ProjectApproval));
 	});
 }
