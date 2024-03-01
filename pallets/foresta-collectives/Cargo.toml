@@ -30,6 +30,9 @@ pallet-membership = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-carbon-credits = { workspace = true }
 pallet-carbon-credits-pool = { workspace = true }
+orml-traits = { workspace = true }
+orml-tokens = { workspace = true }
+pallet-dex = { workspace = true }
 primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
 
 

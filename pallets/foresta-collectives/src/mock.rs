@@ -1,23 +1,25 @@
 use crate as pallet_foresta_collectives;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
+	pallet_prelude::DispatchResult,
 	parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Contains, Nothing},
 	PalletId,
 };
+use primitives::{Amount, Balance, CarbonCreditsValidator, CurrencyId};
 
 use frame_system::{EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
 use sp_core::{ConstU16, ConstU64, H256};
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-	BuildStorage,
+	BuildStorage, Percent
 };
 use sp_std::convert::{TryFrom, TryInto};
-
+pub type AccountId = u64;
+pub const USDT: CurrencyId = CurrencyId::USDT;
 type Block = frame_system::mocking::MockBlock<Test>;
-
-type Balance = u128;
+use orml_traits::parameter_type_with_key;
 pub type BlockNumber = u32;
 
 // Configure a mock runtime to test the pallet.
@@ -32,6 +34,8 @@ frame_support::construct_runtime!(
 		Timestamp: pallet_timestamp,
 		CarbonCredits: pallet_carbon_credits,
 		CarbonCreditsPool: pallet_carbon_credits_pool,
+		Tokens: orml_tokens,
+		Dex: pallet_dex,
 		ForestaCollectives: pallet_foresta_collectives,
 	}
 );
@@ -163,6 +167,106 @@ impl pallet_carbon_credits_pool::Config for Test {
 	type MinPoolId = ConstU32<10000>;
 	type PalletId = CarbonCreditPoolsPalletId;
 	type PoolId = u32;
+	type WeightInfo = ();
+}
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+		Default::default()
+	};
+}
+
+impl orml_tokens::Config for Test {
+	type Amount = Amount;
+	type Balance = Balance;
+	type CurrencyId = CurrencyId;
+	type DustRemovalWhitelist = Nothing;
+	type RuntimeEvent = RuntimeEvent;
+	type ExistentialDeposits = ExistentialDeposits;
+	type MaxLocks = ();
+	type MaxReserves = ();
+	type CurrencyHooks = ();
+	type ReserveIdentifier = [u8; 8];
+	type WeightInfo = ();
+}
+
+pub struct DummyValidator;
+impl CarbonCreditsValidator for DummyValidator {
+	type ProjectId = u32;
+	type Amount = Balance;
+	type Address = AccountId;
+	type AssetId = u32;
+	type GroupId = u32;
+	fn get_project_details(_asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)> {
+		Some((0, 0))
+	}
+
+	fn retire_credits(
+		_sender: Self::Address,
+		_project_id: Self::ProjectId,
+		_group_id: Self::GroupId,
+		_amount: Self::Amount,
+		_retirement_reason: Option<Vec<u8>>,
+	) -> DispatchResult {
+		Ok(())
+	}
+}
+
+pub struct MockKycProvider;
+impl Contains<u64> for MockKycProvider {
+	fn contains(value: &u64) -> bool {
+		// special account to test negative kyc
+		if value == &20 {
+			return false
+		}
+
+		true
+	}
+}
+
+parameter_types! {
+	pub const DexPalletId: PalletId = PalletId(*b"bitg/dex");
+	pub const MinUnitsToCreateSellOrder : u32 = 2;
+	pub const MinPricePerUnit : u32 = 1;
+	pub const MaxPaymentFee : Percent = Percent::from_percent(50);
+	pub const MaxPurchaseFee : u128 = 100u128;
+	#[derive(Clone, scale_info::TypeInfo)]
+	pub const MaxValidators : u32 = 10;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxTxHashLen : u32 = 100;
+	#[derive(Clone, scale_info::TypeInfo)]
+	pub const BuyOrderExpiryTime : u32 = 2;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxAddressLen : u32 = 100;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxOrderIds : u32 = 100;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxPayoutsToStore : u32 = 1000;
+	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
+	pub const MaxOpenOrdersPerUser : u32 = 2;
+}
+
+impl pallet_dex::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Asset = Assets;
+	type Currency = Tokens;
+	type CurrencyBalance = u128;
+	type AssetBalance = u128;
+	type PalletId = DexPalletId;
+	type KYCProvider = MockKycProvider;
+	type MinPricePerUnit = MinPricePerUnit;
+	type AssetValidator = DummyValidator;
+	type MaxValidators = MaxValidators;
+	type MaxTxHashLen = MaxTxHashLen;
+	type BuyOrderExpiryTime = BuyOrderExpiryTime;
+	type MaxAddressLen = MaxAddressLen;
+	type MaxOrderIds = MaxOrderIds;
+	type MaxOpenOrdersPerUser = MaxOpenOrdersPerUser;
+	type MinUnitsToCreateSellOrder = MinUnitsToCreateSellOrder;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type MaxPaymentFee = MaxPaymentFee;
+	type MaxPurchaseFee = MaxPurchaseFee;
+	type MaxPayoutsToStore = MaxPayoutsToStore;
 	type WeightInfo = ();
 }
 
