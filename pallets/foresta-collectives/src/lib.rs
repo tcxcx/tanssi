@@ -55,6 +55,14 @@ pub mod pallet {
 
 	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
 	#[scale_info(skip_type_params(T))]
+	pub struct Proposal<T:Config> {
+        pub creator: T::AccountId,
+		pub hash: BoundedVec<u8, T::MaxStringLength>,
+		pub vote_id: T::VoteId,
+	}
+
+	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
+	#[scale_info(skip_type_params(T))]
 	pub struct CCParams<T:Config> {
 		pub project_details: pallet_carbon_credits::ProjectDetail<T>,
 		pub item_id: <T as pallet_carbon_credits::Config>::ItemId,
@@ -85,18 +93,10 @@ pub mod pallet {
 		InActive,
 	}
 
-	#[derive(Clone, Encode, Decode, PartialEq, Debug,MaxEncodedLen, TypeInfo, Eq, Copy)]
-	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-	pub enum ProjectStatus {
-		VoteInprogress,
-		Ongoing,
-		Rejected,
-	}
-
 	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen,Debug, TypeInfo, Eq, Copy)]
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 	pub enum VoteStatus {
-		InProgress,
+		Deciding,
 		Passed,
 		Failed,
 	}
@@ -110,6 +110,7 @@ pub mod pallet {
 		AddValidator,
 		RemoveValidator,
 		SetSellerPayoutAuthority,
+		Proposal,
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -136,6 +137,20 @@ pub mod pallet {
 			+ EncodeLike
 			+ CheckedAdd;
 		type VoteId: Parameter
+			+ FullCodec
+			+ Default
+			+ Eq
+			+ PartialEq
+			+ Copy
+			+ MaxEncodedLen
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ TypeInfo
+			+ From<u32>
+			+ Into<u32>
+			+ EncodeLike
+			+ CheckedAdd;
+		type ProposalId: Parameter
 			+ FullCodec
 			+ Default
 			+ Eq
@@ -176,6 +191,7 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+
 	#[pallet::storage]
 	#[pallet::getter(fn check_member)]
 	pub(super) type Members<T:Config> = StorageDoubleMap<
@@ -189,12 +205,34 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_proposal)]
+	pub(super) type Proposals<T:Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		Blake2_128Concat,
+		T::ProposalId,
+		Proposal<T>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn get_membership_count)]
 	pub(super) type MembersCount<T:Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		T::CollectiveId,
 		u32,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_proposal_count)]
+	pub(super) type ProposalsCount<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectiveId,
+		T::ProposalId,
 		ValueQuery,
 	>;
 
@@ -298,7 +336,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored { something: u32, who: T::AccountId },
-		CollectiveCreated { uid2 : T::CollectiveId },
+		CollectiveCreated { uid : T::CollectiveId },
 		MemberAdded {collective_id: T::CollectiveId, member: T::AccountId, uid: u32},
 		ProjectApprovalInit { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
 		ProjectApprovalVoteCast { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
@@ -333,7 +371,7 @@ pub mod pallet {
 		/// Not Allowed To Vote
 		NotAllowedToVote,
 		/// Vote Not In Progress
-		VoteNotInProgress,
+		VoteNotDeciding,
 		/// Already Voted
 		AlreadyVoted,
 		/// Project Not Found
@@ -419,10 +457,10 @@ pub mod pallet {
 
 			let uid = Self::collectives_count();
 			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
-			CollectivesMap::<T>::insert(uid2,&collective);
-			Managers::<T>::insert(uid2,&managers);
+			CollectivesMap::<T>::insert(uid,&collective);
+			Managers::<T>::insert(uid,&managers);
 			CollectivesCount::<T>::put(uid2);
-			Self::deposit_event(Event::CollectiveCreated{ uid2 });
+			Self::deposit_event(Event::CollectiveCreated{ uid });
 			Ok(())
 		}
 
@@ -432,9 +470,10 @@ pub mod pallet {
 			let member = ensure_signed(origin)?;
 			Self::check_kyc_approval(&member)?;
 			ensure!(!Self::check_member(collective_id,member.clone()),Error::<T>::MemberAlreadyExists);
-			let uid = Self::get_membership_count(collective_id.clone()).checked_add(1).ok_or(ArithmeticError::Overflow)?;
+			let uid = Self::get_membership_count(collective_id.clone());
+			let uid2 = uid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 			Members::<T>::insert(collective_id.clone(),member.clone(),true);
-			MembersCount::<T>::insert(collective_id.clone(),uid);
+			MembersCount::<T>::insert(collective_id.clone(),uid2);
 			
 			Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
 
@@ -450,11 +489,11 @@ pub mod pallet {
 			
 			match managers.binary_search(&who) {
 				Ok(_) => {
-					let uid = Self::get_membership_count(collective_id.clone()).checked_add(1).ok_or(ArithmeticError::Overflow)?;
-
-
+					let uid = Self::get_membership_count(collective_id.clone());
+					let uid2 = uid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 					Members::<T>::insert(collective_id.clone(),member.clone(),true);
-					MembersCount::<T>::insert(collective_id.clone(),uid);
+					MembersCount::<T>::insert(collective_id.clone(),uid2);
+			
 					Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
 
 					Ok(())
@@ -482,13 +521,13 @@ pub mod pallet {
 						.ok_or(Error::<T>::ProjectNotFound)?;
 			}
 			let uid = Self::votes_count();
-			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			
 			let current_block = <frame_system::Pallet<T>>::block_number();
 
 			let final_block = current_block + T::VotingDuration::get();
 
 			ProjectVoting::<T>::try_mutate(final_block, |projects| {
-				projects.try_push(uid2).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
 
@@ -496,13 +535,15 @@ pub mod pallet {
 				yes_votes: 0,
 				no_votes: 0,
 				end: final_block,
-				status: VoteStatus::InProgress,
+				status: VoteStatus::Deciding,
 				vote_type: VoteType::ProjectApproval,
 				collective_id: collective_id,
 				project_id: project_id,
 			};
 
-			ProjectVote::<T>::insert(uid2,&vote_info);
+			ProjectVote::<T>::insert(uid,&vote_info);
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			VotesCount::<T>::put(uid2);
 
 			Self::deposit_event(Event::ProjectApprovalRemovalInit{ collective_id, project_id });
 
@@ -527,7 +568,7 @@ pub mod pallet {
 			
 			
 			// Check if vote is in progress
-			ensure!(vote.status == VoteStatus::InProgress, Error::<T>::VoteNotInProgress);
+			ensure!(vote.status == VoteStatus::Deciding, Error::<T>::VoteNotDeciding);
 			// Check if member has already voted
 			ensure!(!Self::check_member_vote(who.clone(),vote_id), Error::<T>::AlreadyVoted);
 
@@ -558,13 +599,13 @@ pub mod pallet {
 			Self::check_kyc_approval(&member)?;
 
 			let uid = Self::votes_count();
-			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			
 			let current_block = <frame_system::Pallet<T>>::block_number();
 
 			let final_block = current_block + T::VotingDuration::get();
 
 			ProjectVoting::<T>::try_mutate(final_block, |projects| {
-				projects.try_push(uid2).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
 
@@ -572,13 +613,13 @@ pub mod pallet {
 				yes_votes: 0,
 				no_votes: 0,
 				end: final_block,
-				status: VoteStatus::InProgress,
+				status: VoteStatus::Deciding,
 				vote_type: VoteType::PoolCreation,
 				collective_id: 0.into(),
 				project_id: 0.into(),
 			};
 
-			ProjectVote::<T>::insert(uid2,&vote_info);
+			ProjectVote::<T>::insert(uid,&vote_info);
 
 			let pool_params_info = PoolParams::<T> {
 				id: id,
@@ -588,7 +629,9 @@ pub mod pallet {
 				asset_symbol: asset_symbol,
 			};
 
-			PoolParamsInfo::<T>::insert(uid2,&pool_params_info);
+			PoolParamsInfo::<T>::insert(uid,&pool_params_info);
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			VotesCount::<T>::put(uid2);
 
 
 			Ok(())
@@ -604,13 +647,12 @@ pub mod pallet {
 			vote_type == VoteType::SetSellerPayoutAuthority, Error::<T>::WrongVoteType);
 
 			let uid = Self::votes_count();
-			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
 			let current_block = <frame_system::Pallet<T>>::block_number();
 
 			let final_block = current_block + T::VotingDuration::get();
 
 			ProjectVoting::<T>::try_mutate(final_block, |projects| {
-				projects.try_push(uid2).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
 
@@ -618,7 +660,7 @@ pub mod pallet {
 				yes_votes: 0,
 				no_votes: 0,
 				end: final_block,
-				status: VoteStatus::InProgress,
+				status: VoteStatus::Deciding,
 				vote_type: vote_type,
 				collective_id: 0.into(),
 				project_id: 0.into(),
@@ -628,8 +670,62 @@ pub mod pallet {
 				account: account,
 			};
 
-			ProjectVote::<T>::insert(uid2,&vote_info);
-			DexParamsInfo::<T>::insert(uid2,&dex_params_info);
+			ProjectVote::<T>::insert(uid,&vote_info);
+			DexParamsInfo::<T>::insert(uid,&dex_params_info);
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			VotesCount::<T>::put(uid2);
+
+			Ok(())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		pub fn create_proposal(origin: OriginFor<T>, collective_id: T::CollectiveId,
+			proposal_hash: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
+			
+			let who = ensure_signed(origin)?;
+			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
+
+			let uid = Self::votes_count();
+		
+			let current_block = <frame_system::Pallet<T>>::block_number();
+
+			let final_block = current_block + T::VotingDuration::get();
+
+			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
+				Ok::<(),DispatchError>(())
+			})?;
+
+			let vote_info = Vote::<T> {
+				yes_votes: 0,
+				no_votes: 0,
+				end: final_block,
+				status: VoteStatus::Deciding,
+				vote_type: VoteType::Proposal,
+				collective_id: collective_id,
+				project_id: 0.into(),
+			};
+
+			let proposal_info = Proposal::<T> {
+				creator: who.clone(),
+				hash: proposal_hash,
+				vote_id: uid,
+			};
+
+			let proposal_count = Self::get_proposal_count(collective_id);
+
+
+			ProjectVote::<T>::insert(uid,&vote_info);
+			Proposals::<T>::insert(collective_id,proposal_count,&proposal_info);
+
+			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+			VotesCount::<T>::put(uid2);
+
+			let proposal_count2 = proposal_count.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
+
+			ProposalsCount::<T>::insert(collective_id,proposal_count2);
+
 
 			Ok(())
 		}

@@ -196,12 +196,14 @@ fn it_works_for_adding_members_to_collective() {
 fn it_works_for_add_collective_and_manager_adds_member() {
 	new_test_ext().execute_with(|| {
 		// Root creates collective
+		let manager = 1;
 		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
-		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
 
 		let member = 2;
+		let collective_id = 0;
 
-		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(1).into(),1,member));
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
 	});
 }
 
@@ -228,10 +230,10 @@ fn it_works_for_init_project_approval_vote() {
 		let member = 2;
 		let project_id = 0;
 		let group_id = 0;
-		let collective_id = 1;
+		let collective_id = 0;
 
 		// Manager adds user 2 as a member of the collective
-		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(1).into(),1,member));
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
 
 		// User 1 creates a project
 
@@ -241,5 +243,27 @@ fn it_works_for_init_project_approval_vote() {
 
 		assert_ok!(ForestaCollectives::init_project_approval_removal(RawOrigin::Signed(member).into(),collective_id,
 		project_id,VoteType::ProjectApproval));
+	});
+}
+
+#[test]
+fn it_works_for_create_proposal() {
+	new_test_ext().execute_with(|| {
+		let manager = 1;
+		// Root creates collective and adds user 1 as the manager
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+
+		let member = 2;
+		let project_id = 0;
+		let group_id = 0;
+		let collective_id = 0;
+
+		// Manager adds user 2 as a member of the collective
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
+
+		// Member creates proposal
+		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into,collective_id,
+		"Proposal1Hash".as_bytes().to_vec().try_into().unwrap()));
 	});
 }

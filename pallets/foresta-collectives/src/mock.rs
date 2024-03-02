@@ -311,6 +311,7 @@ impl pallet_foresta_collectives::Config for Test {
     type WeightInfo = ();
     type KYCProvider = KYCMembership;
     type CollectiveId = u32;
+	type ProposalId = u32;
 	type VoteId = u32;
     type MaxNumManagers = ConstU32<5>;
     type MaxStringLength = ConstU32<64>;
