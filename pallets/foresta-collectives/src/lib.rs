@@ -371,7 +371,7 @@ pub mod pallet {
 		/// Not Allowed To Vote
 		NotAllowedToVote,
 		/// Vote Not In Progress
-		VoteNotDeciding,
+		VoteNotInProgress,
 		/// Already Voted
 		AlreadyVoted,
 		/// Project Not Found
@@ -404,22 +404,12 @@ pub mod pallet {
 						vote.status = VoteStatus::Failed;						
 					}
 
-					let collective_id = match vote.collective_id {
-						Some(x) => x,
-						None => 0.into(),
-					};
-
-					let project_id = match vote.project_id {
-						Some(x) => x,
-						None => 0.into(),
-					};
-
 					match vote.vote_type {
 						VoteType::ProjectApproval => {
-							let _ = Self::do_approve_project(collective_id,project_id,is_approved);
+							let _ = Self::do_approve_project(vote.collective_id,vote.project_id,is_approved);
 						},
 						VoteType::ProjectRemoval => {
-							let _ = Self::do_remove_project(collective_id,project_id,is_approved);	
+							let _ = Self::do_remove_project(vote.collective_id,vote.project_id,is_approved);	
 						},
 						VoteType::PoolCreation => {
 							let _ = Self::do_create_pool(*v_id,is_approved);	
@@ -469,6 +459,13 @@ pub mod pallet {
 			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
 			CollectivesMap::<T>::insert(uid,&collective);
 			Managers::<T>::insert(uid,&managers);
+			
+			// Add managers to authorized accounts
+
+			for manager in managers {
+				let _ = Self::do_authorize_account(manager);
+			}
+			
 			CollectivesCount::<T>::put(uid2);
 			Self::deposit_event(Event::CollectiveCreated{ uid });
 			Ok(())
@@ -579,7 +576,7 @@ pub mod pallet {
 			
 			
 			// Check if vote is in progress
-			ensure!(vote.status == VoteStatus::Deciding, Error::<T>::VoteNotDeciding);
+			ensure!(vote.status == VoteStatus::Deciding, Error::<T>::VoteNotInProgress);
 			// Check if member has already voted
 			ensure!(!Self::check_member_vote(who.clone(),vote_id), Error::<T>::AlreadyVoted);
 
@@ -752,19 +749,42 @@ pub mod pallet {
 			}
 		}
 
-		pub fn do_approve_project(collective_id: T::CollectiveId,
-		project_id: <T as pallet_carbon_credits::Config>::ProjectId, is_approved: bool) -> DispatchResult {
-			pallet_carbon_credits::Pallet::<T>::approve_project(frame_system::RawOrigin::Root.into(),project_id,is_approved)?;
-			ApprovedProjects::<T>::try_mutate(collective_id, |projects| {
-				projects.try_push(project_id).map_err(|_| Error::<T>::MaxProjectsExceeded)?;
-				Ok::<(),DispatchError>(())
-			})?; 
+		pub fn do_approve_project(coll_id: Option<T::CollectiveId>,
+		proj_id: Option<<T as pallet_carbon_credits::Config>::ProjectId>, is_approved: bool) -> DispatchResult {
+				
+			if is_approved == true {
+				let collective_id = match coll_id {
+					Some(x) => x,
+					None => 0.into(),
+				};
+	
+				let project_id = match proj_id {
+					Some(x) => x,
+					None => 0.into(),
+				};
+	
+				pallet_carbon_credits::Pallet::<T>::approve_project(frame_system::RawOrigin::Root.into(),project_id,is_approved)?;
+				ApprovedProjects::<T>::try_mutate(collective_id, |projects| {
+					projects.try_push(project_id).map_err(|_| Error::<T>::MaxProjectsExceeded)?;
+					Ok::<(),DispatchError>(())
+				})?; 
+				
+			}
 			Ok(())
 		}
 
-		pub fn do_remove_project(collective_id: T::CollectiveId,
-			project_id: <T as pallet_carbon_credits::Config>::ProjectId, is_approved: bool) -> DispatchResult {
+		pub fn do_remove_project(coll_id: Option<T::CollectiveId>,
+		proj_id: Option<<T as pallet_carbon_credits::Config>::ProjectId>, is_approved: bool) -> DispatchResult {
 				if is_approved == true {
+					let collective_id = match coll_id {
+						Some(x) => x,
+						None => 0.into(),
+					};
+		
+					let project_id = match proj_id {
+						Some(x) => x,
+						None => 0.into(),
+					};
 					pallet_carbon_credits::Pallet::<T>::force_remove_project(frame_system::RawOrigin::Root.into(),project_id)?;
 					let mut projects = ApprovedProjects::<T>::get(collective_id);
 

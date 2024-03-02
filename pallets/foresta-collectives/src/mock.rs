@@ -3,7 +3,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	pallet_prelude::DispatchResult,
 	parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Contains, Nothing},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Contains, Nothing, OnFinalize, OnInitialize},
 	PalletId,
 };
 use primitives::{Amount, Balance, CarbonCreditsValidator, CurrencyId};

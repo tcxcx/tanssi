@@ -1,7 +1,7 @@
-use crate::{mock::*, Config, Error, VoteType};
+use crate::{mock::*, Config, Error, VoteType, Vote, VoteStatus};
 use frame_support::{
 	assert_noop, assert_ok,
-	traits::tokens::fungibles::{metadata::Inspect as MetadataInspect, Inspect},
+	traits::{tokens::fungibles::{metadata::Inspect as MetadataInspect, Inspect}, OnFinalize, OnInitialize},
 	BoundedVec,
 };
 use frame_system::RawOrigin;
@@ -169,6 +169,19 @@ pub fn create_project<T: Config>(
 
 }
 
+fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		if System::block_number() > 0 {
+			ForestaCollectives::on_finalize(System::block_number());
+			System::on_finalize(System::block_number());
+		}
+		System::reset_events();
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		ForestaCollectives::on_initialize(System::block_number());
+	}
+}
+
 
 #[test]
 fn it_works_for_add_collective() {
@@ -228,14 +241,19 @@ fn it_works_for_init_project_approval_vote() {
 		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
 
 		let member = 2;
+		let member2 = 3;
 		let project_id = 0;
 		let group_id = 0;
 		let collective_id = 0;
+		let vote_id = 0;
+		let project_tokens_to_mint: u32 = 100;
 
-		// Manager adds user 2 as a member of the collective
+		// Manager adds member as a member of the collective
 		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
 
-		// User 1 creates a project
+		// Manager adds member2 as a member of the collective
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member2));
+		// Manager creates a project
 
 		create_project::<Test>(manager, false);
 
@@ -243,6 +261,61 @@ fn it_works_for_init_project_approval_vote() {
 
 		assert_ok!(ForestaCollectives::init_project_approval_removal(RawOrigin::Signed(member).into(),collective_id,
 		project_id,VoteType::ProjectApproval));
+
+		let mut vote = Vote::<Test> {
+			yes_votes: 0,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Deciding,
+			vote_type: VoteType::ProjectApproval,
+			collective_id: Some(collective_id),
+			project_id: Some(project_id)
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		run_to_block(21);
+
+		// member2 votes yes
+
+		assert_ok!(ForestaCollectives::cast_vote(RawOrigin::Signed(member).into(),vote_id,true));
+
+		vote = Vote::<Test> {
+			yes_votes: 1,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Deciding,
+			vote_type: VoteType::ProjectApproval,
+			collective_id: Some(collective_id),
+			project_id: Some(project_id)
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		run_to_block(101);
+
+		vote = Vote::<Test> {
+			yes_votes: 1,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Passed,
+			vote_type: VoteType::ProjectApproval,
+			collective_id: Some(collective_id),
+			project_id: Some(project_id)
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		run_to_block(121);
+
+		assert_ok!(CarbonCredits::mint(
+			RawOrigin::Signed(manager).into(),
+			project_id,
+			group_id,
+			project_tokens_to_mint.into(),
+			false
+		));
+
 	});
 }
 
@@ -255,15 +328,71 @@ fn it_works_for_create_proposal() {
 		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
 
 		let member = 2;
+		let member2 = 3;
 		let project_id = 0;
 		let group_id = 0;
 		let collective_id = 0;
+		let vote_id = 0;
 
-		// Manager adds user 2 as a member of the collective
+		// Manager adds member as a member of the collective
 		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
 
-		// Member creates proposal
+		// Manager adds member2 as a member of the collective
+		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member2));
+
+		// member creates proposal
 		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into(),collective_id,
 		"Proposal1Hash".as_bytes().to_vec().try_into().unwrap()));
+
+		let mut vote = Vote::<Test> {
+			yes_votes: 0,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Deciding,
+			vote_type: VoteType::Proposal,
+			collective_id: Some(collective_id),
+			project_id: None
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		run_to_block(21);
+
+		// member2 votes yes
+
+		assert_ok!(ForestaCollectives::cast_vote(RawOrigin::Signed(member2).into(),vote_id,true));
+
+		vote = Vote::<Test> {
+			yes_votes: 1,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Deciding,
+			vote_type: VoteType::Proposal,
+			collective_id: Some(collective_id),
+			project_id: None
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		run_to_block(101);
+
+		vote = Vote::<Test> {
+			yes_votes: 1,
+			no_votes: 0,
+			end: 101,
+			status: VoteStatus::Passed,
+			vote_type: VoteType::Proposal,
+			collective_id: Some(collective_id),
+			project_id: None
+		};
+
+		assert_eq!(ForestaCollectives::get_project_vote(vote_id),Some(vote));
+
+		//member tries to vote after vote ahs expired
+
+		run_to_block(121);
+
+		assert_noop!(ForestaCollectives::cast_vote(RawOrigin::Signed(member).into(),vote_id,true),
+	Error::<Test>::VoteNotInProgress);
 	});
 }
