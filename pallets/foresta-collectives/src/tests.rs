@@ -263,7 +263,7 @@ fn it_works_for_create_proposal() {
 		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
 
 		// Member creates proposal
-		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into,collective_id,
+		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into(),collective_id,
 		"Proposal1Hash".as_bytes().to_vec().try_into().unwrap()));
 	});
 }

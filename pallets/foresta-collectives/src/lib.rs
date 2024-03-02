@@ -49,8 +49,8 @@ pub mod pallet {
 		pub end: BlockNumberFor<T>,
 		pub status: VoteStatus,
 		pub vote_type: VoteType,
-		pub collective_id: T::CollectiveId,
-		pub project_id: <T as pallet_carbon_credits::Config>::ProjectId,
+		pub collective_id: Option<T::CollectiveId>,
+		pub project_id: Option<<T as pallet_carbon_credits::Config>::ProjectId>,
 	}
 
 	#[derive(Clone, Encode, Decode, PartialEq, MaxEncodedLen, Debug, TypeInfo, Eq)]
@@ -404,12 +404,22 @@ pub mod pallet {
 						vote.status = VoteStatus::Failed;						
 					}
 
+					let collective_id = match vote.collective_id {
+						Some(x) => x,
+						None => 0.into(),
+					};
+
+					let project_id = match vote.project_id {
+						Some(x) => x,
+						None => 0.into(),
+					};
+
 					match vote.vote_type {
 						VoteType::ProjectApproval => {
-							let _ = Self::do_approve_project(vote.collective_id,vote.project_id,is_approved);
+							let _ = Self::do_approve_project(collective_id,project_id,is_approved);
 						},
 						VoteType::ProjectRemoval => {
-							let _ = Self::do_remove_project(vote.collective_id,vote.project_id,is_approved);	
+							let _ = Self::do_remove_project(collective_id,project_id,is_approved);	
 						},
 						VoteType::PoolCreation => {
 							let _ = Self::do_create_pool(*v_id,is_approved);	
@@ -537,8 +547,8 @@ pub mod pallet {
 				end: final_block,
 				status: VoteStatus::Deciding,
 				vote_type: VoteType::ProjectApproval,
-				collective_id: collective_id,
-				project_id: project_id,
+				collective_id: Some(collective_id),
+				project_id: Some(project_id),
 			};
 
 			ProjectVote::<T>::insert(uid,&vote_info);
@@ -559,12 +569,13 @@ pub mod pallet {
 			let mut vote = Self::get_project_vote(vote_id).ok_or(Error::<T>::VoteNotFound)?;
 			let collective_id = vote.collective_id;
 			let project_id = vote.project_id;
-			// Check if member
-			if collective_id == 0.into() {
-				Self::check_kyc_approval(&who)?;// Applicable to all KYC'd members of any collective
-			} else {
-				ensure!(Members::<T>::contains_key(collective_id.clone(),who.clone()), Error::<T>::NotAllowedToVote);
+
+			match vote.collective_id {
+				Some(x) => ensure!(Members::<T>::contains_key(x,who.clone()), Error::<T>::NotAllowedToVote),
+				None => Self::check_kyc_approval(&who)?,
 			}
+			// Check if member
+			
 			
 			
 			// Check if vote is in progress
@@ -581,7 +592,7 @@ pub mod pallet {
 			ProjectVote::<T>::insert(vote_id,vote);
 			CheckMemberVote::<T>::insert(who.clone(),vote_id,true);
 
-			Self::deposit_event(Event::ProjectApprovalVoteCast{ collective_id, project_id });
+			//Self::deposit_event(Event::ProjectApprovalVoteCast{ collective_id, project_id });
 			
 			Ok(())
 		}
@@ -615,8 +626,8 @@ pub mod pallet {
 				end: final_block,
 				status: VoteStatus::Deciding,
 				vote_type: VoteType::PoolCreation,
-				collective_id: 0.into(),
-				project_id: 0.into(),
+				collective_id: None,
+				project_id: None,
 			};
 
 			ProjectVote::<T>::insert(uid,&vote_info);
@@ -662,8 +673,8 @@ pub mod pallet {
 				end: final_block,
 				status: VoteStatus::Deciding,
 				vote_type: vote_type,
-				collective_id: 0.into(),
-				project_id: 0.into(),
+				collective_id: None,
+				project_id: None,
 			};
 
 			let dex_params_info = DexParams::<T> {
@@ -703,8 +714,8 @@ pub mod pallet {
 				end: final_block,
 				status: VoteStatus::Deciding,
 				vote_type: VoteType::Proposal,
-				collective_id: collective_id,
-				project_id: 0.into(),
+				collective_id: Some(collective_id),
+				project_id: None,
 			};
 
 			let proposal_info = Proposal::<T> {
