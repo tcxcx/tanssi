@@ -268,7 +268,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_project_voting)]
-	pub type ProjectVoting<T: Config> = StorageMap<
+	pub type ActiveVoting<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		BlockNumberFor<T>,
@@ -388,7 +388,7 @@ pub mod pallet {
 		fn on_initialize(n: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
 			let mut weight = T::DbWeight::get().reads_writes(1, 1);
 
-			let approval = ProjectVoting::<T>::take(n);
+			let approval = ActiveVoting::<T>::take(n);
 
 			for v_id in approval.iter() {
 				weight = weight.saturating_add(T::DbWeight::get().reads_writes(2, 2));
@@ -536,7 +536,7 @@ pub mod pallet {
 
 			let final_block = current_block + T::VotingDuration::get();
 
-			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+			ActiveVoting::<T>::try_mutate(final_block, |projects| {
 				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
@@ -613,7 +613,7 @@ pub mod pallet {
 
 			let final_block = current_block + T::VotingDuration::get();
 
-			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+			ActiveVoting::<T>::try_mutate(final_block, |projects| {
 				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
@@ -660,7 +660,7 @@ pub mod pallet {
 
 			let final_block = current_block + T::VotingDuration::get();
 
-			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+			ActiveVoting::<T>::try_mutate(final_block, |projects| {
 				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?; 
@@ -701,7 +701,7 @@ pub mod pallet {
 
 			let final_block = current_block + T::VotingDuration::get();
 
-			ProjectVoting::<T>::try_mutate(final_block, |projects| {
+			ActiveVoting::<T>::try_mutate(final_block, |projects| {
 				projects.try_push(uid).map_err(|_| Error::<T>::MaxVotingExceeded)?;
 				Ok::<(),DispatchError>(())
 			})?;
