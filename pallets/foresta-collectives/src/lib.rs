@@ -23,11 +23,11 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use frame_support::BoundedVec;
 	use scale_info::TypeInfo;
-	use codec::{Codec, FullCodec, MaxEncodedLen, EncodeLike};
+	use codec::{FullCodec, MaxEncodedLen, EncodeLike};
 
 	use sp_runtime::{
-		traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize,Zero,CheckedAdd,CheckedSub}
-		,ArithmeticError,FixedPointOperand,};
+		traits::{MaybeSerializeDeserialize,CheckedAdd}
+		,ArithmeticError,};
 	use sp_std::{fmt::Debug,cmp::{Eq, PartialEq}};
 	use frame_support::traits::Contains;
 
@@ -335,7 +335,6 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		SomethingStored { something: u32, who: T::AccountId },
 		CollectiveCreated { uid : T::CollectiveId },
 		MemberAdded {collective_id: T::CollectiveId, member: T::AccountId, uid: u32},
 		ProjectApprovalInit { collective_id: T::CollectiveId, project_id: <T as pallet_carbon_credits::Config>::ProjectId},
@@ -457,13 +456,17 @@ pub mod pallet {
 
 			let uid = Self::collectives_count();
 			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
-			CollectivesMap::<T>::insert(uid,&collective);
-			Managers::<T>::insert(uid,&managers);
+			CollectivesMap::<T>::insert(uid.clone(),&collective);
+			Managers::<T>::insert(uid.clone(),&managers);
 			
 			// Add managers to authorized accounts
+			let mut mid = Self::get_membership_count(uid.clone());
 
 			for manager in managers {
-				let _ = Self::do_authorize_account(manager);
+				let _ = Self::do_authorize_account(manager.clone());
+				mid = mid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+				Members::<T>::insert(uid.clone(),manager.clone(),true);
+				MembersCount::<T>::insert(uid.clone(),mid);
 			}
 			
 			CollectivesCount::<T>::put(uid2);
@@ -564,8 +567,6 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			// Get vote
 			let mut vote = Self::get_project_vote(vote_id).ok_or(Error::<T>::VoteNotFound)?;
-			let collective_id = vote.collective_id;
-			let project_id = vote.project_id;
 
 			match vote.collective_id {
 				Some(x) => ensure!(Members::<T>::contains_key(x,who.clone()), Error::<T>::NotAllowedToVote),
@@ -768,6 +769,13 @@ pub mod pallet {
 					projects.try_push(project_id).map_err(|_| Error::<T>::MaxProjectsExceeded)?;
 					Ok::<(),DispatchError>(())
 				})?; 
+
+				// Add project originator to approved accounts
+
+				let project_details: pallet_carbon_credits::ProjectDetail<T> = pallet_carbon_credits::Pallet::get_project_details(project_id)
+				.ok_or(Error::<T>::ProjectNotFound)?;
+
+				let _ = Self::do_authorize_account(project_details.originator)?;
 				
 			}
 			Ok(())
@@ -836,9 +844,20 @@ pub mod pallet {
 		}
 
 		pub fn do_authorize_account(account: T::AccountId) -> DispatchResult {
-			pallet_carbon_credits::Pallet::<T>::force_add_authorized_account(frame_system::RawOrigin::Root.into(),account)?;
-
+			if !Self::check_authorized_account(&account.clone()) {
+				pallet_carbon_credits::Pallet::<T>::force_add_authorized_account(frame_system::RawOrigin::Root.into(),account)?;
+			}
+			
 			Ok(())
+		}
+
+		pub fn check_authorized_account(account_id: &T::AccountId) -> bool {
+			let authorized_accounts = pallet_carbon_credits::AuthorizedAccounts::<T>::get();
+			if authorized_accounts.contains(account_id) {
+				true
+			} else {
+				false
+			}
 		}
 
 	}

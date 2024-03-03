@@ -195,13 +195,16 @@ fn it_works_for_add_collective() {
 #[test]
 fn it_works_for_adding_members_to_collective() {
 	new_test_ext().execute_with(|| {
+		let manager = 1;
+		let collective_id = 0;
 		// Root creates collective
 		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
-		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		assert_eq!(ForestaCollectives::get_membership_count(collective_id),1);
 
-		let member = 1;
+		let member = 2;
 
-		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),1));
+		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),0));
 	});
 }
 

@@ -23,6 +23,7 @@ frame-support = { workspace = true}
 frame-system = { workspace = true}
 sp-std = { workspace = true}
 sp-runtime = { workspace = true}
+sp-core = { workspace = true}
 pallet-balances = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-uniques = { workspace = true }
@@ -38,7 +39,6 @@ primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_pr
 
 
 [dev-dependencies]
-sp-core = { workspace = true}
 sp-io = { workspace = true}
 
 [features]
@@ -55,6 +55,7 @@ std = [
     'pallet-uniques/std',
     'pallet-membership/std',
     'pallet-timestamp/std',
+	'sp-core/std',
 	'sp-std/std',
 	'pallet-carbon-credits/std',
 	'pallet-carbon-credits-pool/std',

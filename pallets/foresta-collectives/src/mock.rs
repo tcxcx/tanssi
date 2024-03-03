@@ -7,6 +7,7 @@ use frame_support::{
 	PalletId,
 };
 use primitives::{Amount, Balance, CarbonCreditsValidator, CurrencyId};
+use crate::SubstrateWeight;
 
 use frame_system::{EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;

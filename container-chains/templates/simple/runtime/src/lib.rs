@@ -39,13 +39,12 @@ use {
     frame_support::{
         construct_runtime,
         dispatch::DispatchClass,
-        instances::{Instance1, Instance2},
         pallet_prelude::DispatchResult,
         parameter_types,
         traits::{
             ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains, InsideBoth,
             InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
-            AsEnsureOriginWithArg, Currency, PrivilegeCmp
+            AsEnsureOriginWithArg
         },
         weights::{
             constants::{
@@ -59,7 +58,7 @@ use {
     },
     frame_system::{
         limits::{BlockLength, BlockWeights},
-        EnsureRoot, EnsureSigned,
+        EnsureRoot,
     },
     nimbus_primitives::{NimbusId, SlotBeacon},
     pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier},
@@ -71,7 +70,7 @@ use {
     sp_core::{MaxEncodedLen, OpaqueMetadata},
     sp_runtime::{
         create_runtime_str, generic, impl_opaque_keys,
-        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, ConvertInto, One},
+        traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, One},
         transaction_validity::{TransactionSource, TransactionValidity},
         ApplyExtrinsicResult, MultiSignature, Percent
     },
@@ -662,7 +661,7 @@ impl pallet_foresta_collectives::Config for Runtime {
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 
-/// Configure the pallet template in pallets/template.
+// Configure the pallet template in pallets/template.
 parameter_types! {
 	pub const GracePeriod: BlockNumber = 3;
 	pub const MaxP: u32 = 64;
@@ -1212,6 +1211,7 @@ impl_runtime_apis! {
                 pallet_cc_authorities_noting,
                 PalletAuthoritiesNotingBench::<Runtime>
             );
+            list_benchmark!(list, extra, pallet_foresta_collectives, ForestaCollectives);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1265,6 +1265,7 @@ impl_runtime_apis! {
                 pallet_cc_authorities_noting,
                 PalletAuthoritiesNotingBench::<Runtime>
             );
+            add_benchmark!(params, batches, pallet_foresta_collectives, ForestaCollectives);
             if batches.is_empty() {
                 return Err("Benchmark not found for this pallet.".into());
             }

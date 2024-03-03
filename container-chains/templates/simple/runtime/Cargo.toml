@@ -216,8 +216,7 @@ runtime-benchmarks = [
 	"xcm-primitives/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
-	"pallet-carbon-credits/runtime-benchmarks",
-
+	"pallet-foresta-collectives/runtime-benchmarks",
 
 ]
 
