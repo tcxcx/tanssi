@@ -443,7 +443,7 @@ pub mod pallet {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::call_index(0)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn add_collective(origin: OriginFor<T>, name: BoundedVec<u8,T::MaxStringLength>,
 		managers: BoundedVec<T::AccountId, T::MaxNumManagers>,hash : BoundedVec<u8,T::MaxStringLength>)  -> DispatchResult {
 			
@@ -475,7 +475,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn join_collective(origin: OriginFor<T>, collective_id: T::CollectiveId) -> DispatchResult {
 			let member = ensure_signed(origin)?;
 			Self::check_kyc_approval(&member)?;
@@ -491,7 +491,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_member())]
 		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(!Members::<T>::contains_key(collective_id.clone(),&member.clone()), Error::<T>::MemberAlreadyExists);
@@ -515,7 +515,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn init_project_approval_removal(origin: OriginFor<T>, collective_id: T::CollectiveId, 
 		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_type: VoteType) -> DispatchResult {
 			
@@ -561,7 +561,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn cast_vote(origin: OriginFor<T>,vote_id: T::VoteId, 
 		vote_cast: bool) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -596,7 +596,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn init_create_pool(origin: OriginFor<T>, id: <T as pallet_carbon_credits_pool::Config>::PoolId,
 			admin: T::AccountId,
 			config: pallet_carbon_credits_pool::PoolConfigOf<T>,
@@ -647,7 +647,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn init_dex_management_vote(origin: OriginFor<T>, account: T::AccountId, vote_type: VoteType) -> DispatchResult {
 			let member = ensure_signed(origin)?;
 			// Check if member
@@ -688,7 +688,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::do_something())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn create_proposal(origin: OriginFor<T>, collective_id: T::CollectiveId,
 			proposal_hash: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
 			

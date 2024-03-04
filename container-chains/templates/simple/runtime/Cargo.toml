@@ -36,6 +36,7 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-membership = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-root-testing = { workspace = true }
 pallet-session = { workspace = true }
@@ -134,6 +135,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-cc-authorities-noting/std",
 	"pallet-maintenance-mode/std",
+	"pallet-membership/std",
 	"pallet-migrations/std",
 	"pallet-proxy/std",
 	"pallet-root-testing/std",

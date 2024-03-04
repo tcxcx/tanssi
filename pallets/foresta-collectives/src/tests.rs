@@ -1,4 +1,4 @@
-use crate::{mock::*, Config, Error, VoteType, Vote, VoteStatus};
+use crate::{mock::*, Config, Error, VoteType, Vote, VoteStatus, MembersCount};
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{tokens::fungibles::{metadata::Inspect as MetadataInspect, Inspect}, OnFinalize, OnInitialize},
@@ -226,12 +226,15 @@ fn it_works_for_add_collective_and_manager_adds_member() {
 #[test]
 fn it_works_for_join_collective() {
 	new_test_ext().execute_with(|| {
+		let collective_id = 0;
+		let manager = 1;
 		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
-		sp_core::bounded_vec![1],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
 
-		let applicant = 1;
+		let applicant = 2;
 
-		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(applicant).into(),1));
+		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(applicant).into(),collective_id));
+		assert_eq!(MembersCount::<Test>::get(collective_id),2);
 	});
 }
 

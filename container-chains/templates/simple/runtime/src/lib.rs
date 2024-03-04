@@ -590,6 +590,7 @@ impl pallet_uniques::Config for Runtime {
 	type MetadataDepositBase = ConstU128<1>;
 	type StringLimit = ConstU32<50>;
 	type ValueLimit = ConstU32<50>;
+    //type Helper = ();
 	type WeightInfo = ();
 }
 
@@ -675,6 +676,19 @@ impl pallet_foresta_ocw::Config for Runtime {
 	type GracePeriod = GracePeriod;
 	type MaxPrices = MaxP;
 	type MaxAuthorities = MaxA;
+}
+
+impl pallet_membership::Config for Runtime {
+	type AddOrigin = EnsureRoot<AccountId>;
+	type MaxMembers = ConstU32<50>;
+	type MembershipChanged = ();
+	type MembershipInitialized = ();
+	type PrimeOrigin = EnsureRoot<AccountId>;
+	type RemoveOrigin = EnsureRoot<AccountId>;
+	type ResetOrigin = EnsureRoot<AccountId>;
+	type RuntimeEvent = RuntimeEvent;
+	type SwapOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -1067,6 +1081,7 @@ construct_runtime!(
         Balances: pallet_balances = 10,
         TransactionPayment: pallet_transaction_payment = 11,
         Assets: pallet_assets = 12,
+        Membership: pallet_membership::{Pallet, Call, Storage, Config<T>, Event<T>} = 13,
 
         // orml pallets
 		Tokens: orml_tokens = 41,
