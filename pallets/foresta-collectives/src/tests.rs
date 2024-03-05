@@ -193,6 +193,23 @@ fn it_works_for_add_collective() {
 }
 
 #[test]
+fn it_fails_to_join_collective() {
+	new_test_ext().execute_with(|| {
+		let manager = 1;
+		let collective_id = 0;
+		// Root creates collective
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		assert_eq!(ForestaCollectives::get_membership_count(collective_id),1);
+
+		let member = 4;// Not KYC'd KYCAuthorisationFailed
+
+		assert_noop!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),collective_id),
+		Error::<Test>::KYCAuthorisationFailed);
+	});
+}
+
+#[test]
 fn it_works_for_adding_members_to_collective() {
 	new_test_ext().execute_with(|| {
 		let manager = 1;
@@ -204,9 +221,28 @@ fn it_works_for_adding_members_to_collective() {
 
 		let member = 2;
 
-		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),0));
+		assert_ok!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),collective_id));
 	});
 }
+
+#[test]
+fn it_fails_to_add_members_to_collective() {
+	new_test_ext().execute_with(|| {
+		let manager = 1;
+		let collective_id = 0;
+		// Root creates collective
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+		assert_eq!(ForestaCollectives::get_membership_count(collective_id),1);
+
+		let member = 2;
+		let not_collective_id = 1;
+
+		assert_noop!(ForestaCollectives::join_collective(RawOrigin::Signed(member).into(),not_collective_id),
+		Error::<Test>::CollectiveDoesNotExist);
+	});
+}
+
 
 #[test]
 fn it_works_for_add_collective_and_manager_adds_member() {
@@ -220,6 +256,24 @@ fn it_works_for_add_collective_and_manager_adds_member() {
 		let collective_id = 0;
 
 		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member));
+	});
+}
+
+#[test]
+fn it_fails_for_manager_adds_member() {
+	new_test_ext().execute_with(|| {
+		// Root creates collective
+		let manager = 1;
+		assert_ok!(ForestaCollectives::add_collective(RawOrigin::Root.into(),"Collective1".as_bytes().to_vec().try_into().unwrap(),
+		sp_core::bounded_vec![manager],"Coll1Hash".as_bytes().to_vec().try_into().unwrap()));
+
+		let member = 2;
+		let collective_id = 0;
+
+		let not_manager = 3;
+
+		assert_noop!(ForestaCollectives::add_member(RawOrigin::Signed(not_manager).into(),collective_id,member),
+		Error::<Test>::NotAllowedToManageMembership);
 	});
 }
 

@@ -480,6 +480,7 @@ pub mod pallet {
 			let member = ensure_signed(origin)?;
 			Self::check_kyc_approval(&member)?;
 			ensure!(!Self::check_member(collective_id,member.clone()),Error::<T>::MemberAlreadyExists);
+			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
 			let uid = Self::get_membership_count(collective_id.clone());
 			let uid2 = uid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 			Members::<T>::insert(collective_id.clone(),member.clone(),true);
@@ -494,6 +495,7 @@ pub mod pallet {
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_member())]
 		pub fn add_member(origin: OriginFor<T>, collective_id: T::CollectiveId, member: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
 			ensure!(!Members::<T>::contains_key(collective_id.clone(),&member.clone()), Error::<T>::MemberAlreadyExists);
 			let managers = Managers::<T>::get(collective_id.clone());
 			
@@ -520,6 +522,7 @@ pub mod pallet {
 		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_type: VoteType) -> DispatchResult {
 			
 			let who = ensure_signed(origin)?;
+			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
 			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
 			ensure!(vote_type == VoteType::ProjectApproval || vote_type == VoteType::ProjectRemoval,
 				Error::<T>::WrongVoteType);
@@ -693,6 +696,7 @@ pub mod pallet {
 			proposal_hash: BoundedVec<u8, T::MaxStringLength>) -> DispatchResult {
 			
 			let who = ensure_signed(origin)?;
+			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
 			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
 
 			let uid = Self::votes_count();
