@@ -93,6 +93,8 @@ impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AddOrigin = frame_system::EnsureRoot<u64>;
 	type MaxAuthorizedAccountCount = ConstU32<10>;
+	type MaxStringLength = ConstU32<512>;
+	type MaxQueueLength = ConstU32<100>;
 	type PalletId = KycPalletId;
 	type Currency = Balances;
 	type WeightInfo = ();

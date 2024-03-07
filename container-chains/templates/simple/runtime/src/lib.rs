@@ -507,6 +507,8 @@ impl pallet_kyc::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = KYCPalletId;
 	type MaxAuthorizedAccountCount = ConstU32<100>;
+    type MaxStringLength = ConstU32<512>;
+    type MaxQueueLength = ConstU32<100>;
 	type WeightInfo = ();
 }
 
