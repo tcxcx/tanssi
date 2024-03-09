@@ -21,13 +21,13 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use frame_support::BoundedVec;
+	use frame_support::{BoundedVec,PalletId};
 	use scale_info::TypeInfo;
 	use codec::{FullCodec, MaxEncodedLen, EncodeLike};
 
 	use sp_runtime::{
-		traits::{MaybeSerializeDeserialize,CheckedAdd}
-		,ArithmeticError,};
+		traits::{MaybeSerializeDeserialize,CheckedAdd,AccountIdConversion}
+		,ArithmeticError, };
 	use sp_std::{fmt::Debug,cmp::{Eq, PartialEq}};
 	use frame_support::traits::Contains;
 
@@ -164,6 +164,10 @@ pub mod pallet {
 			+ Into<u32>
 			+ EncodeLike
 			+ CheckedAdd;
+		/// The ForestaCollectives pallet id
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
+
 		type MaxStringLength: Get<u32>;
 		type MaxNumManagers: Get<u32>;
 		type MaxConcurrentVotes: Get<u32>;
@@ -862,6 +866,11 @@ pub mod pallet {
 			} else {
 				false
 			}
+		}
+
+		/// The account ID of the ForestaCollectives pallet
+		pub fn account_id() -> T::AccountId {
+			<T as pallet::Config>::PalletId::get().into_account_truncating()
 		}
 
 	}

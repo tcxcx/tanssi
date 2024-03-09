@@ -305,6 +305,7 @@ impl pallet_membership::Config for Test {
 
 parameter_types! {
 	pub const blocknumbers : BlockNumber = 100;
+	pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"foresta/c");
   }
 
 impl pallet_foresta_collectives::Config for Test {
@@ -314,6 +315,7 @@ impl pallet_foresta_collectives::Config for Test {
     type CollectiveId = u32;
 	type ProposalId = u32;
 	type VoteId = u32;
+	type PalletId = ForestaCollectivesPalletId;
     type MaxNumManagers = ConstU32<5>;
     type MaxStringLength = ConstU32<64>;
     type MaxConcurrentVotes = ConstU32<5>;

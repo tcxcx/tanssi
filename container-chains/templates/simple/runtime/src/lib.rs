@@ -38,7 +38,7 @@ use {
     cumulus_primitives_core::{relay_chain::BlockNumber as RelayBlockNumber, DmpMessageHandler},
     frame_support::{
         construct_runtime,
-        dispatch::DispatchClass,
+        dispatch::{PostDispatchInfo, DispatchClass},
         pallet_prelude::DispatchResult,
         parameter_types,
         traits::{
@@ -72,13 +72,15 @@ use {
         create_runtime_str, generic, impl_opaque_keys,
         traits::{AccountIdLookup, AccountIdConversion, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify, One},
         transaction_validity::{TransactionSource, TransactionValidity},
-        ApplyExtrinsicResult, MultiSignature, Percent
+        ApplyExtrinsicResult, MultiSignature, DispatchResultWithInfo, Percent
     },
     sp_std::prelude::*,
     sp_version::RuntimeVersion,
 };
 use sp_runtime::SaturatedConversion;
 use orml_traits::parameter_type_with_key;
+use pallet_acurast_fulfillment_receiver::Fulfillment;
+
 
 pub mod xcm_config;
 
@@ -640,6 +642,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
+    pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"for/coll");
     pub const Managers: u32 = 5;
     pub const MaxString: u32 = 64;
     pub const MaxVotesPerBlock: u32 = 16;
@@ -654,6 +657,7 @@ impl pallet_foresta_collectives::Config for Runtime {
     type CollectiveId = u32;
     type ProposalId = u32;
     type VoteId = u32;
+    type PalletId = ForestaCollectivesPalletId;
     type MaxNumManagers = Managers;
     type MaxStringLength = MaxString;
     type MaxConcurrentVotes = MaxVotesPerBlock;
@@ -1021,6 +1025,23 @@ impl OffchainWorker<BlockNumber> for MaintenanceHooks {
     }
 }
 
+
+impl pallet_acurast_fulfillment_receiver::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OnFulfillment = OnAcurastFulfillment;
+    type WeightInfo = ();
+}
+
+pub struct OnAcurastFulfillment;
+impl pallet_acurast_fulfillment_receiver::traits::OnFulfillment<Runtime> for OnAcurastFulfillment {
+	fn on_fulfillment(
+		_from: <Runtime as frame_system::Config>::AccountId,
+		_fulfillment: Fulfillment,
+	) -> DispatchResultWithInfo<PostDispatchInfo> {
+		Ok(().into())
+	}
+}
+
 impl pallet_maintenance_mode::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type NormalCallFilter = NormalFilter;
@@ -1091,6 +1112,9 @@ construct_runtime!(
         // ContainerChain Author Verification
         AuthoritiesNoting: pallet_cc_authorities_noting = 50,
         AuthorInherent: pallet_author_inherent = 51,
+
+        //Acurast
+        Acurast: pallet_acurast_fulfillment_receiver = 60,
 
         // XCM
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Storage, Event<T>} = 70,

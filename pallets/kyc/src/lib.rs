@@ -311,8 +311,6 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			ensure!(Members::<T, I>::get(who.clone()).is_none(), Error::<T, I>::AlreadyMember);
 
-			let current_block = <frame_system::Pallet<T>>::block_number();
-
 
 			Applicants::<T,I>::insert(who.clone(),(name,email));
 			Queue::<T,I>::try_mutate(|queue| -> DispatchResult {
