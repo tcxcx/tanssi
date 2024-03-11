@@ -2,71 +2,63 @@
 
 ![Foresta Banner](media/foresta-banner.png)
 
-**An enterprise-level carbon-credit issuance and retiring platform**
-</br>
-🔎 For more about Foresta Protocol, head to our [website](https://www.foresta.network)</br>
-📢 Follow our latest updates on [Twitter](https://twitter.com/Foresta)</br>
-🤝 Engage with fellow developers on our [Discord server](https://discord.com/invite/)</br>
+**An enterprise-level carbon-credit issuance and retiring platform.** Foresta aims to streamline the process of carbon credit generation, verification, and retirement with a focus on transparency and efficiency.
 
-## Build the Foresta Node
+🌍 [Website](https://www.foresta.network) | 📢 [Twitter](https://twitter.com/Foresta) | 🤝 [Discord](https://discord.com/invite/)
 
-To build the Foresta node, you will need a proper Substrate development environment.
+## Overview
 
-If you need a refresher setting up your Substrate environment, see [Substrate's Getting Started Guide](https://substrate.dev/docs/en/knowledgebase/getting-started/).
+Foresta Node provides the technological foundation for the Foresta Protocol, a decentralized platform designed to support carbon credit issuance and retirement processes at an enterprise level. It leverages blockchain technology to ensure the integrity, transparency, and security of carbon credit transactions.
 
-```bash
-# Fetch the code
-git clone https://github.com/tcxcx/foresta-node.git
-cd foresta-node
+## Features
 
-# Build the node (The first build will be long (~30min depending on machine specs)
-cargo build -p container-chain-template-simple-node --release
+- **Carbon Credit Management:** Efficient handling of carbon credit issuance, trading, and retirement.
+- **KYC Integration:** Ensures compliance with global standards through a Know Your Customer (KYC) framework.
+- **Decentralized Finance (DeFi) Components:** Incorporates DeFi features such as pools and decentralized exchanges (DEX) for carbon credit trading.
+- **Governance:** Facilitates community governance through Foresta Collectives, enabling proposal submission and voting.
 
-# Run the node 
-./target/release/container-chain-template-simple-node --dev --sealing 6000
-```
+## Quick Start
 
-## Runtime Architecture
+### Requirements
 
-The Tanssi Runtime is built using FRAME and consists of pallets from substrate, frontier, cumulus, and `pallets/` which already provide these key block production and collator functionality.
+- Substrate development environment setup.
+- Rust and Cargo installed.
+- Git for code repository cloning.
 
-From substrate:
+### Installation
 
-- _Balances_: Tracks token balances
-- _Sudo_: Allows a privileged account to make arbitrary runtime changes - will be removed before
-  launch
-- _Timestamp_: On-Chain notion of time
-- _Transaction Payment_: Transaction payment (fee) management
-- _Authorship_: A pallet where authorship information for orchestrator is stored
-- _Invulnerables_: A pallet that selects invulnerable collators to be assigned to author in container-chains and orchestrator
-- _Session_: A pallet that handles session-changes and keys
-- _AuthorityMapping_: A pallet that handles a mapping between collator accounts and authority keys
+1. Clone the Foresta node repository:
+    ```bash
+    git clone https://github.com/tcxcx/foresta-node.git
+    cd foresta-node
+    ```
 
-From cumulus:
+2. Build the node (The first build might take up to 30 minutes depending on your machine's specifications):
+    ```bash
+    cargo build -p container-chain-template-simple-node --release
+    ```
 
-- _ParachainSystem_: A helper to perform relay-storage verifications and injection of cross-chain messages
-- _ParachainInfo_: A place to store parachain-relevant constants like parachain id
+### Running the Node
 
-The following pallets are stored in `pallets/`. They are designed for Tanssi's specific requirements:
+1. Run the node in development mode with sealing enabled:
+    ```bash
+    ./target/release/container-chain-template-simple-node --dev --sealing 6000
+    ```
 
-- _Registrar_: A pallet that stores all registered container-chains
-- _Configuration_: A pallet storing the current configuration from which several other components depend
-- _CollatorAssignment_: A pallet implementing collator account to orchestrator/container-chain assignment
-- _AuthorityAssignment_: A pallet implementing collator authority key to orchestrator/container-chain assignment
-- _Initializer_: A pallet that handles everything that happens on a session-change
-- _AuthorNoting_: A pallet that stores the latest author of each of the container-chains
+2. Access the node and perform operations using the Polkadot.js.org/apps interface. Set the interface to connect to your local development node.
 
-## Container-chain template
+## Pallet Information
 
-This repo uses the Simple Template offered within the main Tanssi repository at [Tanssi repository](https://github.com/moondance-labs/tanssi).
+- **KYC, Carbon Credits, and Collectives Pallets:** Manage KYC processes, carbon credit issuance, trading, and collective governance.
+- **Runtime Architecture:** Incorporates essential pallets for token balances, transaction payment management, authorship, and session handling.
+- **Container-chain Template:** Uses a simple template for basic operations, focusing on scalability and interoperability.
 
-- _Simple template_: Which ressembles the parachain-template node from cumulus and substrate, and only basic pallet like _pallet-balances_, _parachain-system_ and basic configuration.
+## Funding Accounts
 
-### Build container-chain nodes (full nodes only, not collators)
+Ensure the following pallet accounts are funded upon node initialization for seamless operation:
 
-These nodes will only act as full nodes, but not as collators since these are offered by Tanssi:
-
-```bash
-# Build the simple-template node
-cargo build -p container-chain-template-simple-node --release
-```
+- **DEX:** `5EYCAe5fvJMpFoTxRjUDmf4VvqJcpBTDEiD9Jg86JVWFB4Xm`
+- **CarbonCredits:** `5EYCAe5fvJMpFobCKxFM9kjhoVwcYByEnDDWk36syUXiPdfM`
+- **CarbonCreditsPool:** `5EYCAe5fvJMgizZc3hWRWmrEAaho3gA6ZnqX3AV72HGyJkAB`
+- **KYC:** `5EYCAe5fvJMpFoWocGiiFrUTvzMXNBRccpYvNyuUGJyMcamb`
+- **ForestaCollectives:** `5EYCAe5gj4MWc3L9QTJ8eRm96L356AknQ8Pi1TNjqAjGqFKF`
