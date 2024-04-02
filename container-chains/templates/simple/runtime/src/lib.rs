@@ -535,6 +535,7 @@ impl pallet_carbon_credits::Config for Runtime {
 	type ProjectId = u32;
 	type GroupId = u32;
 	type Balance = u128;
+    type CollectiveId = u32;
 	type RuntimeEvent = RuntimeEvent;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type ItemId = u32;
@@ -645,6 +646,7 @@ parameter_types! {
     pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"for/coll");
     pub const Managers: u32 = 5;
     pub const MaxString: u32 = 64;
+    pub const MaxNumCollectives: u32 = 200;
     pub const MaxVotesPerBlock: u32 = 16;
     pub const VoteDuration: BlockNumber = 200;
     pub const MaxPPC: u32 = 100;
@@ -654,6 +656,7 @@ impl pallet_foresta_collectives::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
     type KYCProvider = KYCPallet;
+    type MaxNumCollectives = MaxNumCollectives;
     type CollectiveId = u32;
     type ProposalId = u32;
     type VoteId = u32;

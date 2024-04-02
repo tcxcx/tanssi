@@ -132,6 +132,7 @@ impl<T: Config> Pallet<T> {
 	pub fn create_project(
 		admin: T::AccountId,
 		params: ProjectCreateParams<T>,
+		collective_id: Option<T::CollectiveId>,
 	) -> Result<T::ProjectId, DispatchError> {
 		let now = frame_system::Pallet::<T>::block_number();
 
@@ -191,6 +192,7 @@ impl<T: Config> Pallet<T> {
 			}
 
 			let new_project = ProjectDetail {
+				collective_id,
 				originator: admin,
 				name: params.name,
 				description: params.description,
@@ -279,6 +281,7 @@ impl<T: Config> Pallet<T> {
 				originator: admin,
 				name: params.name,
 				description: params.description,
+				collective_id: project.collective_id,
 				location: params.location,
 				images: params.images,
 				videos: params.videos,
@@ -325,6 +328,7 @@ impl<T: Config> Pallet<T> {
 				originator: admin,
 				name: params.name,
 				description: params.description,
+				collective_id: project.collective_id,
 				location: params.location,
 				images: params.images,
 				videos: params.videos,

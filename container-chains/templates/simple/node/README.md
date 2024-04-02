@@ -28,12 +28,14 @@ Foresta Node provides the technological foundation for the Foresta Protocol, a d
 ### Installation
 
 1. Clone the Foresta node repository:
+
     ```bash
     git clone https://github.com/tcxcx/foresta-node.git
     cd foresta-node
     ```
 
 2. Build the node (The first build might take up to 30 minutes depending on your machine's specifications):
+
     ```bash
     cargo build -p container-chain-template-simple-node --release
     ```
@@ -41,6 +43,7 @@ Foresta Node provides the technological foundation for the Foresta Protocol, a d
 ### Running the Node
 
 1. Run the node in development mode with sealing enabled:
+
     ```bash
     ./target/release/container-chain-template-simple-node --dev --sealing 6000
     ```

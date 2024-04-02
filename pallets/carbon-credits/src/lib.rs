@@ -154,6 +154,22 @@ pub mod pallet {
 			+ Into<u32>
 			+ CheckedAdd;
 
+		//Display CollectiveId
+			type CollectiveId: Member
+			+ Parameter
+			+ Default
+			+ Copy
+			+ HasCompact
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen
+			+ TypeInfo
+			+ From<u32>
+			+ Into<u32>
+			+ sp_std::fmt::Display
+			+ sp_std::cmp::PartialOrd
+			+ sp_std::cmp::Ord
+			+ CheckedAdd;
+
 		/// The CarbonCredits pallet id
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
@@ -368,10 +384,10 @@ pub mod pallet {
 		/// This new project can mint tokens after approval from an authorised account
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::create())]
-		pub fn create(origin: OriginFor<T>, params: ProjectCreateParams<T>) -> DispatchResult {
+		pub fn create(origin: OriginFor<T>, params: ProjectCreateParams<T>, collective_id: Option<T::CollectiveId>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::check_kyc_approval(&sender)?;
-			let project_id = Self::create_project(sender, params)?;
+        let project_id = Self::create_project(sender, params, collective_id)?;
 			// emit event
 			Self::deposit_event(Event::ProjectCreated { project_id });
 			Ok(())
