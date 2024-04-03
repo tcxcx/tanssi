@@ -305,7 +305,7 @@ impl pallet_membership::Config for Test {
 
 parameter_types! {
 	pub const blocknumbers : BlockNumber = 100;
-	pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"foresta/c");
+	pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"forest/c");
   }
 
 impl pallet_foresta_collectives::Config for Test {

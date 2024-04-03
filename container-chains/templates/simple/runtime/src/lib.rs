@@ -535,6 +535,7 @@ impl pallet_carbon_credits::Config for Runtime {
 	type ProjectId = u32;
 	type GroupId = u32;
 	type Balance = u128;
+    type CollectiveId = u32;
 	type RuntimeEvent = RuntimeEvent;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type ItemId = u32;
@@ -645,6 +646,7 @@ parameter_types! {
     pub const ForestaCollectivesPalletId: PalletId = PalletId(*b"for/coll");
     pub const Managers: u32 = 5;
     pub const MaxString: u32 = 64;
+    pub const MaxNumCollectives: u32 = 200;
     pub const MaxVotesPerBlock: u32 = 16;
     pub const VoteDuration: BlockNumber = 200;
     pub const MaxPPC: u32 = 100;
@@ -654,6 +656,7 @@ impl pallet_foresta_collectives::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
     type KYCProvider = KYCPallet;
+    type MaxNumCollectives = MaxNumCollectives;
     type CollectiveId = u32;
     type ProposalId = u32;
     type VoteId = u32;
@@ -667,22 +670,6 @@ impl pallet_foresta_collectives::Config for Runtime {
 }
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
-
-// Configure the pallet template in pallets/template.
-parameter_types! {
-	pub const GracePeriod: BlockNumber = 3;
-	pub const MaxP: u32 = 64;
-	pub const MaxA: u32 = 64;
-}
-
-//Pallet OCW
-impl pallet_foresta_ocw::Config for Runtime {
-	type AuthorityId = pallet_foresta_ocw::crypto::TestAuthId;
-	type RuntimeEvent = RuntimeEvent;
-	type GracePeriod = GracePeriod;
-	type MaxPrices = MaxP;
-	type MaxAuthorities = MaxA;
-}
 
 impl pallet_membership::Config for Runtime {
 	type AddOrigin = EnsureRoot<AccountId>;
@@ -1122,6 +1109,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 72,
         PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 73,
 
+
         RootTesting: pallet_root_testing = 100,
         AsyncBacking: pallet_async_backing::{Pallet, Storage} = 110,
 
@@ -1135,7 +1123,6 @@ construct_runtime!(
 
         // Governance
         ForestaCollectives: pallet_foresta_collectives = 91,
-        ForestaOCW: pallet_foresta_ocw = 92,
 
     }
 );

@@ -102,6 +102,8 @@ pub struct ProjectCreateParams<T: pallet::Config> {
 #[derive(frame_support::DebugNoBound)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProjectDetail<T: pallet::Config> {
+	/// The Foresta Collective behind the project
+    pub collective_id: Option<T::CollectiveId>,
 	/// The originator of the project
 	pub originator: T::AccountId,
 	/// Name of the project
