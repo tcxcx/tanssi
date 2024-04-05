@@ -136,6 +136,7 @@ impl pallet_carbon_credits::Config for Test {
 	type ItemId = u32;
 	type ProjectId = u32;
 	type GroupId = u32;
+	type CollectiveId = u32;
 	type KYCProvider = KYCMembership;
 	type MarketplaceEscrow = MarketplaceEscrowAccount;
 	type MaxAuthorizedAccountCount = ConstU32<2>;

@@ -623,7 +623,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn init_project_approval_removal(origin: OriginFor<T>, collective_id: <T as pallet::Config>::CollectiveId, 
-		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_type: VoteType, category: VoteCategory, priority: VotePriority,) -> DispatchResult {
+		project_id: <T as pallet_carbon_credits::Config>::ProjectId, vote_type: VoteType, category: VoteCategory, priority: VotePriority) -> DispatchResult {
 			
 			let who = ensure_signed(origin)?;
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
@@ -721,7 +721,7 @@ pub mod pallet {
 			admin: T::AccountId,
 			config: pallet_carbon_credits_pool::PoolConfigOf<T>,
 			max_limit: Option<u32>,
-			asset_symbol: pallet_carbon_credits_pool::SymbolStringOf<T>, category: VoteCategory, priority: VotePriority,) -> DispatchResult {
+			asset_symbol: pallet_carbon_credits_pool::SymbolStringOf<T>, category: VoteCategory, priority: VotePriority) -> DispatchResult {
 
 			let member = ensure_signed(origin)?;
 			// Check if member
@@ -770,7 +770,7 @@ pub mod pallet {
 
 		#[pallet::call_index(6)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
-		pub fn init_dex_management_vote(origin: OriginFor<T>, account: T::AccountId, vote_type: VoteType, category: VoteCategory,  priority: VotePriority,) -> DispatchResult {
+		pub fn init_dex_management_vote(origin: OriginFor<T>, account: T::AccountId, vote_type: VoteType, category: VoteCategory,  priority: VotePriority) -> DispatchResult {
 			let member = ensure_signed(origin)?;
 			// Check if member
 			Self::check_kyc_approval(&member)?;
@@ -814,7 +814,7 @@ pub mod pallet {
 		#[pallet::call_index(7)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
 		pub fn create_proposal(origin: OriginFor<T>, collective_id: <T as pallet::Config>::CollectiveId, title: BoundedVec<u8, T::MaxStringLength>,
-			proposal_hash: BoundedVec<u8, T::MaxStringLength>, category: VoteCategory, priority: VotePriority,	) -> DispatchResult {
+			proposal_hash: BoundedVec<u8, T::MaxStringLength>, category: VoteCategory, priority: VotePriority) -> DispatchResult {
 		
 			let who = ensure_signed(origin)?;
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);

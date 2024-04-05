@@ -137,6 +137,7 @@ impl pallet_carbon_credits::Config for Test {
 	type ItemId = u32;
 	type ProjectId = u32;
 	type GroupId = u32;
+	type CollectiveId = u32;
 	type KYCProvider = KYCMembership;
 	type MarketplaceEscrow = MarketplaceEscrowAccount;
 	type MaxAuthorizedAccountCount = ConstU32<2>;
@@ -320,6 +321,7 @@ impl pallet_foresta_collectives::Config for Test {
     type MaxStringLength = ConstU32<64>;
     type MaxConcurrentVotes = ConstU32<5>;
     type MaxProjectsPerCollective = ConstU32<5>;
+	type MaxNumCollectives = ConstU32<20>;
     type VotingDuration = blocknumbers;
     type ForceOrigin =  frame_system::EnsureRoot<u64>;
 }

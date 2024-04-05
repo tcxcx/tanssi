@@ -158,6 +158,7 @@ pub fn create_project_and_mint<T: Config>(
 	let mut creation_params = get_default_creation_params::<Test>();
 	let project_id = 0;
 	let group_id = 0;
+	let collective_id = 0;
 	if batch {
 		// replace the default with mutiple batches
 		let created_batch_list = get_multiple_batch_group::<Test>();
@@ -168,7 +169,7 @@ pub fn create_project_and_mint<T: Config>(
 
 	assert_ok!(CarbonCredits::create(
 		RawOrigin::Signed(originator_account).into(),
-		creation_params
+		creation_params, Some(collective_id)
 	));
 
 	// approve project so minting can happen
