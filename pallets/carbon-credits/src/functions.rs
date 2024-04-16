@@ -25,7 +25,7 @@ use crate::{
 	AssetIdLookup, AuthorizedAccounts, BatchGroupOf, BatchRetireDataList, BatchRetireDataOf,
 	Config, Error, Event, NextAssetId, NextItemId, NextProjectId, Pallet, ProjectApprovalStatus,
 	ProjectCreateParams, ProjectDetail, Projects, RetiredCarbonCreditsData, RetiredCredits,
-	ShortStringOf,
+	ShortStringOf, ApprovedProjects
 };
 
 impl<T: Config> Pallet<T> {

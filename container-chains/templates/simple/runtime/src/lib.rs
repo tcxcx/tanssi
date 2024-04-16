@@ -527,6 +527,7 @@ parameter_types! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, MaxEncodedLen, TypeInfo)]
   pub const MaxGroupSize : u32 = 10;
   pub const MaxCoordinatesLength : u32 = 10;
+  pub const MaxPPC: u32 = 100;
 }
 
 impl pallet_carbon_credits::Config for Runtime {
@@ -552,6 +553,7 @@ impl pallet_carbon_credits::Config for Runtime {
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
 	type MaxCoordinatesLength = MaxCoordinatesLength;
+    type MaxProjectsPerCollective = MaxPPC;
 	type WeightInfo = ();
 }
 
@@ -649,7 +651,6 @@ parameter_types! {
     pub const MaxNumCollectives: u32 = 200;
     pub const MaxVotesPerBlock: u32 = 16;
     pub const VoteDuration: BlockNumber = 200;
-    pub const MaxPPC: u32 = 100;
 }
 
 impl pallet_foresta_collectives::Config for Runtime {
@@ -657,14 +658,12 @@ impl pallet_foresta_collectives::Config for Runtime {
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
     type KYCProvider = KYCPallet;
     type MaxNumCollectives = MaxNumCollectives;
-    type CollectiveId = u32;
     type ProposalId = u32;
     type VoteId = u32;
     type PalletId = ForestaCollectivesPalletId;
     type MaxNumManagers = Managers;
     type MaxStringLength = MaxString;
     type MaxConcurrentVotes = MaxVotesPerBlock;
-    type MaxProjectsPerCollective = MaxPPC;
     type VotingDuration = VoteDuration;
     type ForceOrigin = EnsureRoot<AccountId>;
 }

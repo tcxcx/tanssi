@@ -210,6 +210,7 @@ pub mod pallet {
 		/// Minimum value of AssetId for CarbonCredits
 		type MinProjectId: Get<Self::AssetId>;
 		/// Weight information for extrinsics in this pallet.
+		type MaxProjectsPerCollective: Get<u32>;
 		type WeightInfo: WeightInfo;
 	}
 
@@ -249,6 +250,16 @@ pub mod pallet {
 	/// AssetId details for project/group
 	pub(super) type AssetIdLookup<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AssetId, (T::ProjectId, T::GroupId)>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_approved_projects)]
+	pub type ApprovedProjects<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		<T as pallet::Config>::CollectiveId,
+		BoundedVec<<T as pallet::Config>::ProjectId, T::MaxProjectsPerCollective>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn retired_carbon_credits)]
@@ -376,6 +387,8 @@ pub mod pallet {
 		ApprovalAlreadyProcessed,
 		/// Retirement reason out of bounds
 		RetirementReasonOutOfBounds,
+		/// MaxProjectsExceeded
+		MaxProjectsExceeded,
 	}
 
 	#[pallet::call]
