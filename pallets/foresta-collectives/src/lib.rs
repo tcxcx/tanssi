@@ -211,11 +211,17 @@ pub mod pallet {
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/main-docs/build/runtime-storage/
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
-
+	#[pallet::getter(fn vote_preferences)]
+	pub(super) type VotePreferences<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::VoteId,
+		Blake2_128Concat,
+		T::AccountId,
+		bool,
+		ValueQuery,
+	>;
+	
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_collective)]
@@ -692,14 +698,16 @@ pub mod pallet {
 			ensure!(!Self::check_member_vote(who.clone(),vote_id), Error::<T>::AlreadyVoted);
 			
 			let mut new_vote = vote.clone();
-
 			if vote_cast {
-				new_vote.yes_votes = new_vote.yes_votes + 1;
+				new_vote.yes_votes = new_vote.yes_votes.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 			} else {
-				new_vote.no_votes = new_vote.no_votes + 1;
+				new_vote.no_votes = new_vote.no_votes.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 			}
 
 			let event_vote = new_vote.clone();
+
+			VotePreferences::<T>::insert(vote_id, who.clone(), vote_cast);
+
 
 			ProjectVote::<T>::insert(vote_id, new_vote);
 			CheckMemberVote::<T>::insert(who.clone(), vote_id, true);
