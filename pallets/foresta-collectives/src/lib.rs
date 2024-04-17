@@ -218,7 +218,7 @@ pub mod pallet {
 		T::VoteId,
 		Blake2_128Concat,
 		T::AccountId,
-		bool,
+		Option<bool>,
 		ValueQuery,
 	>;
 	
@@ -706,7 +706,7 @@ pub mod pallet {
 
 			let event_vote = new_vote.clone();
 
-			VotePreferences::<T>::insert(vote_id, who.clone(), vote_cast);
+			VotePreferences::<T>::insert(vote_id, who.clone(), Some(vote_cast));
 
 
 			ProjectVote::<T>::insert(vote_id, new_vote);
