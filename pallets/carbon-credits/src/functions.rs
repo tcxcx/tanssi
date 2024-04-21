@@ -580,18 +580,20 @@ impl<T: Config> Pallet<T> {
 			let ipfs_hash_list: IpfsLinkListsOf<T> = if ipfs_hash.is_none() {
 				Default::default()
 			} else {
-				ipfs_hash
-					.expect("Checked above!")
-					.try_into()
+				let ipfs_hash_vec = ipfs_hash.expect("Checked above!");
+				let ipfs_link = IpfsLinkOf::<T>::try_from(ipfs_hash_vec)
+					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?;
+				IpfsLinkListsOf::<T>::try_from(vec![ipfs_link])
 					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?
 			};
-		
+			
 			let ipns_link_list: IpfsLinkListsOf<T> = if ipns_link.is_none() {
 				Default::default()
 			} else {
-				ipns_link
-					.expect("Checked above!")
-					.try_into()
+				let ipns_link_vec = ipns_link.expect("Checked above!");
+				let ipns_link = IpfsLinkOf::<T>::try_from(ipns_link_vec)
+					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?;
+				IpfsLinkListsOf::<T>::try_from(vec![ipns_link])
 					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?
 			};
 
