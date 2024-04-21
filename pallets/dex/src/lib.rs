@@ -797,6 +797,8 @@ pub mod pallet {
 								group_id,
 								order.units,
 								retirement_reason,
+								None,
+								None,
 							)?;
 						}
 

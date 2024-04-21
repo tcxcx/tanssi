@@ -191,6 +191,8 @@ pub trait CarbonCreditsValidator {
 		group_id: Self::GroupId,
 		amount: Self::Amount,
 		retirement_reason: Option<Vec<u8>>,
+		ipfs_hash: Option<Vec<u8>>,
+        ipns_link: Option<Vec<u8>>
 	) -> DispatchResult;
 }
 

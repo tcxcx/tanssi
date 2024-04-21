@@ -636,7 +636,7 @@ impl<T: Config> primitives::CarbonCreditsValidator for Pallet<T> {
         amount: Self::Amount,
         reason: Option<sp_std::vec::Vec<u8>>,
         ipfs_hash: Option<sp_std::vec::Vec<u8>>,
-        ipns_link: Option<sp_std::vec::Vec<u8>>
+        ipns_link: Option<sp_std::vec::Vec<u8>>,
     ) -> DispatchResult {
         Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link)
     }
