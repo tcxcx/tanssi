@@ -376,6 +376,10 @@ pub mod pallet {
 		ApprovalAlreadyProcessed,
 		/// Retirement reason out of bounds
 		RetirementReasonOutOfBounds,
+		/// IPFS hash is out of bounds
+		IPFSHashOutOfBounds,
+		/// IPNS link is out of bounds
+		IPNSLinkOutOfBounds,
 	}
 
 	#[pallet::call]
@@ -456,16 +460,18 @@ pub mod pallet {
 			group_id: T::GroupId,
 			amount: T::Balance,
 			reason: Option<Vec<u8>>,
+			ipfs_hash: Option<Vec<u8>>,
+			ipns_link: Option<Vec<u8>>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::check_kyc_approval(&sender)?;
-			Self::retire_carbon_credits(sender, project_id, group_id, amount, reason)
+			Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link)
 		}
 
 		/// Add a new account to the list of authorised Accounts
 		/// The caller must be from a permitted origin
 		#[pallet::call_index(5)]
-		#[pallet::weight(T::WeightInfo::force_add_authorized_account())]
+		#[pallet::weight(T::WeightInfo::force_add_authorized_account())]Error
 		pub fn force_add_authorized_account(
 			origin: OriginFor<T>,
 			account_id: T::AccountId,

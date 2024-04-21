@@ -163,6 +163,10 @@ pub struct RetiredCarbonCreditsData<T: pallet::Config> {
 	pub count: T::Balance,
 	/// Retirement reason
 	pub reason: ShortStringOf<T>,
+	/// IPFS hash of the retired carbon credit data
+	pub ipfs_hash: IpfsLinkListsOf<T>,
+	/// IPNS link of the retired carbon credit data
+	pub ipns_link: IpfsLinkListsOf<T>,
 }
 
 /// Enum representing the approval status of a project.
