@@ -1,5 +1,5 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2022 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 //! CarbonCredits pallet helper functions
 use codec::alloc::string::ToString;
@@ -20,7 +20,7 @@ use frame_support::{
 };
 use primitives::BatchRetireData;
 use sp_runtime::traits::{ AccountIdConversion, CheckedAdd, CheckedSub, One, Zero };
-use sp_std::{ cmp, convert::TryInto, vec::Vec };
+use sp_std::{ cmp, convert::TryInto, vec::Vec, };
 
 use crate::{
     AssetIdLookup,
@@ -583,7 +583,7 @@ impl<T: Config> Pallet<T> {
 				let ipfs_hash_vec = ipfs_hash.expect("Checked above!");
 				let ipfs_link = IpfsLinkOf::<T>::try_from(ipfs_hash_vec)
 					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?;
-				IpfsLinkListsOf::<T>::try_from(vec![ipfs_link])
+                    IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipfs_link])
 					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?
 			};
 			
@@ -593,7 +593,7 @@ impl<T: Config> Pallet<T> {
 				let ipns_link_vec = ipns_link.expect("Checked above!");
 				let ipns_link = IpfsLinkOf::<T>::try_from(ipns_link_vec)
 					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?;
-				IpfsLinkListsOf::<T>::try_from(vec![ipns_link])
+                    IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipns_link])
 					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?
 			};
 

@@ -1,6 +1,6 @@
 [package]
-authors = ["Bitgreen"]
-description = "Bitgreen DEX pallet"
+authors = ["Foresta"]
+description = "Foresta DEX pallet"
 edition = "2021"
 license = "Unlicense"
 name = "pallet-dex"
@@ -29,7 +29,7 @@ pallet-carbon-credits = { package = 'pallet-carbon-credits', path = '../carbon-c
 
 # Local dependencies
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
+primitives  = { package = 'foresta-primitives', path = '../../primitives/frst_primitives/', default-features = false }
 
 [dev-dependencies]
 sp-core = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }

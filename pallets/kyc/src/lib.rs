@@ -1,5 +1,5 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2024 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 //
 //! # KYC Module
@@ -17,7 +17,7 @@ use frame_support::{
 use sp_runtime::traits::{AccountIdConversion, StaticLookup};
 use sp_std::prelude::*;
 pub mod weights;
-pub use bitgreen_primitives::UserLevel;
+pub use foresta_primitives::UserLevel;
 
 #[cfg(test)]
 mod mock;

@@ -98,8 +98,6 @@ container-chains/templates/frontier/node/src/chain_spec.rs
 
 ### 8
 
-***Optional: only for packages that do not contain github linked code to substrate***
-
 - _Add path code for local dependencies_: Add local dependencies code to folder to be accessible to Dependencies and Features**
 
 ## LIST OF PALLETS TO ADD
@@ -144,4 +142,4 @@ container-chains/templates/frontier/node/src/chain_spec.rs
 
 8. pallet-dex = { default-features = false, path = "../../pallets/dex" }
 
-9. primitives = { package = "bitgreen-primitives", path = "../../primitives", default-features = false } :check
+9. primitives = { package = "foresta-primitives", path = "../../primitives", default-features = false } :check

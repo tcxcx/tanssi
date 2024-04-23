@@ -105,7 +105,7 @@ acurast-p256-crypto = { git = "https://github.com/Acurast/acurast-core.git", def
 
 
 # Local Dependencies
-primitives = { package = "bitgreen-primitives", path = "../../../../primitives/btg_primitives", default-features = false }
+primitives = { package = "foresta-primitives", path = "../../../../primitives/frst_primitives", default-features = false }
 
 
 [build-dependencies]

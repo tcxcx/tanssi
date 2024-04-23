@@ -1,5 +1,5 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2024 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 use frame_support::{
 	pallet_prelude::DispatchResult,

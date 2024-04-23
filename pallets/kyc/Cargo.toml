@@ -1,9 +1,9 @@
 [package]
 name = "pallet-kyc"
 version = "0.0.1"
-authors = ["Bitgreen"]
+authors = ["Foresta"]
 edition = "2021"
-homepage = 'https://bitgreen.org'
+homepage = 'https://Foresta.org'
 license = 'MIT'
 description = "Pallet to handle onchain KYC validation"
 
@@ -22,7 +22,7 @@ sp-io = {git = "https://github.com/paritytech/polkadot-sdk", branch = "release-p
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-bitgreen-primitives = { path = '../../primitives/btg_primitives/', default-features = false }
+foresta-primitives = { path = '../../primitives/frst_primitives/', default-features = false }
 
 [features]
 default = ["std"]
@@ -38,7 +38,7 @@ std = [
 	"sp-runtime/std",
 	"pallet-balances/std",
 	"sp-std/std",
-	"bitgreen-primitives/std"
+	"foresta-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

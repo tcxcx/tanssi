@@ -1,5 +1,5 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2024 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 //
 //! CarbonCredits Pallet
@@ -455,7 +455,7 @@ pub mod pallet {
             amount: T::Balance,
             reason: Option<Vec<u8>>,
             ipfs_hash: Option<Vec<u8>>,
-            ipns_link: Option<Vec<u8>>
+            ipns_link: Option<Vec<u8>>,
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
             Self::check_kyc_approval(&sender)?;

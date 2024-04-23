@@ -1113,7 +1113,7 @@ construct_runtime!(
         RootTesting: pallet_root_testing = 100,
         AsyncBacking: pallet_async_backing::{Pallet, Storage} = 110,
 
-		// Bitgreen pallets
+		// Foresta pallets
         CarbonCredits: pallet_carbon_credits::{Pallet, Call, Storage, Event<T>} = 81,
 		CarbonCreditsPools: pallet_carbon_credits_pool::{Pallet, Call, Storage, Event<T>} = 82,
 		KYCPallet: pallet_kyc::{Pallet, Call, Storage, Config<T>, Event<T>} = 83,

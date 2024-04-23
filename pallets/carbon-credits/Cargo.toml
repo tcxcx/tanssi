@@ -1,11 +1,11 @@
 [package]
 name = 'pallet-carbon-credits'
 version = '0.0.1'
-authors = ['BitGreen <https://bitgreen.org>']
+authors = ['Foresta <https://Foresta.org>']
 edition = '2021'
-homepage = 'https://bitgreen.org'
+homepage = 'https://Foresta.org'
 license = 'MIT'
-repository = 'https://github.com/bitgreen/bitgreen-node'
+repository = 'https://github.com/Foresta/Foresta-node'
 description = "Module to tokenize carbon credits"
 
 [package.metadata.docs.rs]
@@ -24,7 +24,7 @@ sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release
 
 # Local dependencies
 pallet-assets = { git = "https://github.com/moondance-labs/polkadot-sdk", branch = "tanssi-polkadot-v1.3.0", default-features = false }
-primitives = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
+primitives = { package = 'foresta-primitives', path = '../../primitives/frst_primitives/', default-features = false }
 
 # Benchmarking
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, optional = true, branch = "release-polkadot-v1.1.0" }
