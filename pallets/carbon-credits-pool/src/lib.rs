@@ -331,7 +331,8 @@ pub mod pallet {
             amount: T::Balance,
             reason: Option<Vec<u8>>,
             ipfs_hash: Option<Vec<u8>>,
-            ipns_link: Option<Vec<u8>>
+            ipns_link: Option<Vec<u8>>,
+            image_link: Option<Vec<u8>>
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
@@ -384,7 +385,8 @@ pub mod pallet {
                             actual,
                             reason.clone(),
                             ipfs_hash.clone(),
-                            ipns_link.clone()
+                            ipns_link.clone(),
+                            image_link.clone()
                         )?;
 
                         // Update value in storage

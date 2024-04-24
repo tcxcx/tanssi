@@ -527,6 +527,7 @@ parameter_types! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, MaxEncodedLen, TypeInfo)]
   pub const MaxGroupSize : u32 = 10;
   pub const MaxCoordinatesLength : u32 = 10;
+  pub const MaxRetirementRecords : u32 = 1024;
 }
 
 impl pallet_carbon_credits::Config for Runtime {
@@ -552,6 +553,7 @@ impl pallet_carbon_credits::Config for Runtime {
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
 	type MaxCoordinatesLength = MaxCoordinatesLength;
+    type MaxRetirementRecords = MaxRetirementRecords;
 	type WeightInfo = ();
 }
 

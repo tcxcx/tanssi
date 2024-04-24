@@ -20,7 +20,7 @@ use frame_support::{
 };
 use primitives::BatchRetireData;
 use sp_runtime::traits::{ AccountIdConversion, CheckedAdd, CheckedSub, One, Zero };
-use sp_std::{ cmp, convert::TryInto, vec::Vec, };
+use sp_std::{ cmp, convert::TryInto, vec::Vec };
 
 use crate::{
     AssetIdLookup,
@@ -41,9 +41,10 @@ use crate::{
     Projects,
     RetiredCarbonCreditsData,
     RetiredCredits,
-	ShortStringOf,
-	IpfsLinkListsOf,
-	IpfsLinkOf
+    ShortStringOf,
+    IpfsLinkListsOf,
+    IpfsLinkOf,
+    UserRetirements,
 };
 
 impl<T: Config> Pallet<T> {
@@ -472,8 +473,9 @@ impl<T: Config> Pallet<T> {
         group_id: T::GroupId,
         amount: T::Balance,
         reason: Option<Vec<u8>>,
-		ipfs_hash: Option<Vec<u8>>,
-		ipns_link: Option<Vec<u8>>,
+        ipfs_hash: Option<Vec<u8>>,
+        ipns_link: Option<Vec<u8>>,
+        image_link: Option<Vec<u8>>
     ) -> DispatchResult {
         let now = frame_system::Pallet::<T>::block_number();
 
@@ -576,26 +578,29 @@ impl<T: Config> Pallet<T> {
                     .map_err(|_| Error::<T>::RetirementReasonOutOfBounds)?
             };
 
+            let ipfs_hash_list: IpfsLinkListsOf<T> = if ipfs_hash.is_none() {
+                Default::default()
+            } else {
+                let ipfs_hash_vec = ipfs_hash.expect("Checked above!");
+                let ipfs_link = IpfsLinkOf::<T>::try_from(ipfs_hash_vec).map_err(|_| Error::<T>::IPFSHashOutOfBounds)?;
+                IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipfs_link]).map_err(|_| Error::<T>::IPFSHashOutOfBounds)?
+            };
 
-			let ipfs_hash_list: IpfsLinkListsOf<T> = if ipfs_hash.is_none() {
-				Default::default()
-			} else {
-				let ipfs_hash_vec = ipfs_hash.expect("Checked above!");
-				let ipfs_link = IpfsLinkOf::<T>::try_from(ipfs_hash_vec)
-					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?;
-                    IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipfs_link])
-					.map_err(|_| Error::<T>::IPFSHashOutOfBounds)?
-			};
-			
-			let ipns_link_list: IpfsLinkListsOf<T> = if ipns_link.is_none() {
-				Default::default()
-			} else {
-				let ipns_link_vec = ipns_link.expect("Checked above!");
-				let ipns_link = IpfsLinkOf::<T>::try_from(ipns_link_vec)
-					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?;
-                    IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipns_link])
-					.map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?
-			};
+            let ipns_link_list: IpfsLinkListsOf<T> = if ipns_link.is_none() {
+                Default::default()
+            } else {
+                let ipns_link_vec = ipns_link.expect("Checked above!");
+                let ipns_link = IpfsLinkOf::<T>::try_from(ipns_link_vec).map_err(|_| Error::<T>::ImageLinkOutOfBounds)?;
+                IpfsLinkListsOf::<T>::try_from(sp_std::vec![ipns_link]).map_err(|_| Error::<T>::ImageLinkOutOfBounds)?
+            };
+
+            let image_link_list: IpfsLinkListsOf<T> = if image_link.is_none() {
+                Default::default()
+            } else {
+                let image_link_vec = image_link.expect("Checked above!");
+                let image_link = IpfsLinkOf::<T>::try_from(image_link_vec).map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?;
+                IpfsLinkListsOf::<T>::try_from(sp_std::vec![image_link]).map_err(|_| Error::<T>::IPNSLinkOutOfBounds)?
+            };
 
             // form the retire CarbonCredits data
             let retired_carbon_credit_data = RetiredCarbonCreditsData::<T> {
@@ -604,12 +609,18 @@ impl<T: Config> Pallet<T> {
                 timestamp: now,
                 count: amount,
                 reason: ret_reason.clone(),
-				ipfs_hash: ipfs_hash_list,
-				ipns_link: ipns_link_list,
+                ipfs_hash: ipfs_hash_list,
+                ipns_link: ipns_link_list,
+                image_link: image_link_list,
             };
 
             //Store the details of retired batches in storage
             RetiredCredits::<T>::insert(group.asset_id, item_id, retired_carbon_credit_data);
+
+            UserRetirements::<T>::try_mutate(&from, |retirements| -> DispatchResult {
+                retirements.try_push((group.asset_id, item_id)).map_err(|_| Error::<T>::MaxRetirementsReached)?;
+                Ok(())
+            })?;
 
             // emit event
             Self::deposit_event(Event::CarbonCreditRetired {

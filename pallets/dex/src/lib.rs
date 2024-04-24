@@ -799,6 +799,7 @@ pub mod pallet {
 								retirement_reason,
 								None,
 								None,
+								None,
 							)?;
 						}
 

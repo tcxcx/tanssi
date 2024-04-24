@@ -41,6 +41,7 @@ pub trait WeightInfo {
 	fn force_set_project_storage() -> Weight;
 	fn force_set_next_item_id() -> Weight;
 	fn force_set_retired_carbon_credit() -> Weight;
+	fn get_user_retirements() -> Weight;
 }
 
 /// Weights for pallet_carbon_credits using the Substrate node and recommended hardware.
@@ -112,6 +113,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(10_000_000_u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+	fn get_user_retirements() -> Weight {
+        Weight::from_parts(10_000_000_u64, 0)
+            .saturating_add(T::DbWeight::get().reads(1_u64))
+    }
 }
 
 // For backwards compatibility and tests
@@ -182,4 +187,8 @@ impl WeightInfo for () {
 		Weight::from_parts(10_000_000_u64, 0)
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
+	fn get_user_retirements() -> Weight {
+        Weight::from_parts(10_000_000_u64, 0)
+            .saturating_add(RocksDbWeight::get().reads(1_u64))
+    }
 }

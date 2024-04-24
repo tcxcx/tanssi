@@ -167,6 +167,8 @@ pub struct RetiredCarbonCreditsData<T: pallet::Config> {
 	pub ipfs_hash: IpfsLinkListsOf<T>,
 	/// IPNS link of the retired carbon credit data
 	pub ipns_link: IpfsLinkListsOf<T>,
+	/// Original Image link on IPFS of the retired carbon credit data
+	pub image_link: IpfsLinkListsOf<T>,
 }
 
 /// Enum representing the approval status of a project.

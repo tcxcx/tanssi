@@ -211,6 +211,8 @@ pub mod pallet {
         type MinProjectId: Get<Self::AssetId>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
+        /// Maximum number of retirement records per user
+        type MaxRetirementRecords: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -256,6 +258,16 @@ pub mod pallet {
         Blake2_128Concat,
         T::ItemId,
         RetiredCarbonCreditsData<T>
+    >;
+
+    #[pallet::storage]
+    #[pallet::getter(fn user_retirements)]
+    pub(super) type UserRetirements<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<(T::AssetId, T::ItemId), T::MaxRetirementRecords>,
+        ValueQuery
     >;
 
     #[pallet::event]
@@ -380,6 +392,10 @@ pub mod pallet {
         IPFSHashOutOfBounds,
         /// IPNS link is out of bounds
         IPNSLinkOutOfBounds,
+        /// IPNS link is out of bounds
+        ImageLinkOutOfBounds,
+        // Surpassed u32 retirement limit
+        MaxRetirementsReached,
     }
 
     #[pallet::call]
@@ -456,10 +472,11 @@ pub mod pallet {
             reason: Option<Vec<u8>>,
             ipfs_hash: Option<Vec<u8>>,
             ipns_link: Option<Vec<u8>>,
+            image_link: Option<Vec<u8>>
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
             Self::check_kyc_approval(&sender)?;
-            Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link)
+            Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link, image_link)
         }
 
         /// Add a new account to the list of authorised Accounts
@@ -614,6 +631,18 @@ pub mod pallet {
             Self::check_kyc_approval(&sender)?;
             Self::do_add_batch_group(sender, project_id, batch_group)
         }
+
+        #[pallet::call_index(15)]
+        #[pallet::weight(T::WeightInfo::get_user_retirements())]
+        pub fn get_user_retirements(origin: OriginFor<T>, account_id: T::AccountId) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            let _retirements = UserRetirements::<T>
+                ::get(&account_id)
+                .iter()
+                .filter_map(|(asset_id, item_id)| RetiredCredits::<T>::get(asset_id, item_id))
+                .collect::<Vec<_>>();
+                Ok(().into())
+            }
     }
 }
 
@@ -637,7 +666,8 @@ impl<T: Config> primitives::CarbonCreditsValidator for Pallet<T> {
         reason: Option<sp_std::vec::Vec<u8>>,
         ipfs_hash: Option<sp_std::vec::Vec<u8>>,
         ipns_link: Option<sp_std::vec::Vec<u8>>,
+        image_link: Option<sp_std::vec::Vec<u8>>
     ) -> DispatchResult {
-        Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link)
+        Self::retire_carbon_credits(sender, project_id, group_id, amount, reason, ipfs_hash, ipns_link, image_link)
     }
 }
