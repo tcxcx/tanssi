@@ -24,12 +24,17 @@ pub mod pallet {
 	use frame_support::{BoundedVec,PalletId};
 	use scale_info::TypeInfo;
 	use codec::{FullCodec, MaxEncodedLen, EncodeLike};
+	use primitives::Royalty;
+	use orml_traits::MultiCurrency;
 
 	use sp_runtime::{
-		traits::{MaybeSerializeDeserialize,CheckedAdd,AccountIdConversion}
+		traits::{MaybeSerializeDeserialize, AtLeast32BitUnsigned, CheckedAdd, AccountIdConversion}
 		,ArithmeticError, };
 	use sp_std::{fmt::Debug,cmp::{Eq, PartialEq}};
 	use frame_support::traits::Contains;
+
+	pub type CurrencyBalanceOf<T> =
+	<<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -154,6 +159,16 @@ pub mod pallet {
 		/// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
 		type KYCProvider: Contains<Self::AccountId>;
+		/// The units in which we record currency balance.
+		type CurrencyBalance: Member
+			+ Parameter
+			+ AtLeast32BitUnsigned
+			+ Default
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen
+			+ TypeInfo
+			+ From<u128>;
 		type VoteId: Parameter
 			+ FullCodec
 			+ Default
@@ -182,13 +197,14 @@ pub mod pallet {
 			+ Into<u32>
 			+ EncodeLike
 			+ CheckedAdd;
-		/// The ForestaCollectives pallet id
+		type Currency: MultiCurrency<Self::AccountId, Balance = <Self as pallet::Config>::CurrencyBalance>;
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
 		type MaxNumCollectives: Get<u32>;
 		type MaxStringLength: Get<u32>;
 		type MaxNumManagers: Get<u32>;
 		type MaxConcurrentVotes: Get<u32>;
+		type MaxMembersPerCollective: Get<u32>;
 		type VotingDuration: Get<BlockNumberFor<Self>>;
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
@@ -215,13 +231,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn check_member)]
-	pub(super) type Members<T:Config> = StorageDoubleMap<
+	pub(super) type Members<T:Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		<T as pallet_carbon_credits::Config>::CollectiveId,
-		Blake2_128Concat,
-		T::AccountId,
-		bool,
+		BoundedVec<T::AccountId, T::MaxMembersPerCollective>,
 		ValueQuery,
 	>;
 
@@ -418,9 +432,10 @@ pub mod pallet {
 		NoVoteCategorySelected,
 		/// An invalid vote category was selected.
 		InvalidVoteCategory,
-		// Too Many Collectives Associated To Manager
+		/// Too Many Collectives Associated To Manager
 		TooManyCollectives,
-
+		/// NotAllowedToDistributeFunds
+		NotAllowedToDistributeFunds,
 	}
 
 	#[pallet::hooks]
@@ -530,6 +545,7 @@ pub mod pallet {
 			let uid2 = uid.checked_add(&1u32.into()).ok_or(ArithmeticError::Overflow)?;
 			CollectivesMap::<T>::insert(uid.clone(),&collective);
 			Managers::<T>::insert(uid.clone(),&managers);
+			let mut members = BoundedVec::new();
 			
 			// Add managers to authorized accounts
 			let mut mid = Self::get_membership_count(uid.clone());
@@ -537,9 +553,12 @@ pub mod pallet {
 			for manager in managers.iter() {
 				let _ = Self::do_authorize_account(manager.clone());
 				mid = mid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-				Members::<T>::insert(uid.clone(), manager.clone(), true);
+				//Members::<T>::insert(uid.clone(), manager.clone(), true);
+				members.try_push(manager.clone());
 				MembersCount::<T>::insert(uid.clone(), mid);
 			}
+
+			Members::<T>::insert(uid.clone(), &members);
 			
 			for manager in managers.iter() {
 				ManagerCollectives::<T>::try_mutate(manager, |collectives| {
@@ -558,11 +577,13 @@ pub mod pallet {
 		pub fn join_collective(origin: OriginFor<T>, collective_id: <T as pallet_carbon_credits::Config>::CollectiveId) -> DispatchResult {
 			let member = ensure_signed(origin)?;
 			Self::check_kyc_approval(&member)?;
-			ensure!(!Self::check_member(collective_id,member.clone()),Error::<T>::MemberAlreadyExists);
+			ensure!(!Self::ensure_member(member.clone(),collective_id),Error::<T>::MemberAlreadyExists);
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
 			let uid = Self::get_membership_count(collective_id.clone());
 			let uid2 = uid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-			Members::<T>::insert(collective_id.clone(),member.clone(),true);
+			let mut members = Members::<T>::get(collective_id);
+			members.try_push(member.clone());
+			Members::<T>::insert(collective_id.clone(),&members);
 			MembersCount::<T>::insert(collective_id.clone(),uid2);
 			
 			Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
@@ -575,14 +596,16 @@ pub mod pallet {
 		pub fn add_member(origin: OriginFor<T>, collective_id: <T as pallet_carbon_credits::Config>::CollectiveId, member: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
-			ensure!(!Members::<T>::contains_key(collective_id.clone(),&member.clone()), Error::<T>::MemberAlreadyExists);
+			ensure!(!Self::ensure_member(member.clone(),collective_id),Error::<T>::MemberAlreadyExists);
 			let managers = Managers::<T>::get(collective_id.clone());
 			
 			match managers.binary_search(&who) {
 				Ok(_) => {
 					let uid = Self::get_membership_count(collective_id.clone());
 					let uid2 = uid.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-					Members::<T>::insert(collective_id.clone(),member.clone(),true);
+					let mut members = Members::<T>::get(collective_id);
+					members.try_push(member.clone());
+					Members::<T>::insert(collective_id.clone(),&members);
 					MembersCount::<T>::insert(collective_id.clone(),uid2);
 			
 					Self::deposit_event(Event::MemberAdded{ collective_id, member, uid });
@@ -602,7 +625,7 @@ pub mod pallet {
 			
 			let who = ensure_signed(origin)?;
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
-			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
+			ensure!(Self::ensure_member(who.clone(),collective_id), Error::<T>::MemberDoesNotExist);
 			ensure!(vote_type == VoteType::ProjectApproval || vote_type == VoteType::ProjectRemoval,
 				Error::<T>::WrongVoteType);
 
@@ -656,7 +679,7 @@ pub mod pallet {
 			}
 
 			match vote.collective_id {
-				Some(x) => ensure!(Members::<T>::contains_key(x,who.clone()), Error::<T>::NotAllowedToVote),
+				Some(x) => ensure!(Self::ensure_member(who.clone(),x), Error::<T>::NotAllowedToVote),
 				None => Self::check_kyc_approval(&who)?,
 			}
 			// Check if member
@@ -793,7 +816,7 @@ pub mod pallet {
 		
 			let who = ensure_signed(origin)?;
 			ensure!(Self::get_collective(collective_id).is_some(),Error::<T>::CollectiveDoesNotExist);
-			ensure!(Members::<T>::contains_key(collective_id.clone(),&who.clone()), Error::<T>::MemberDoesNotExist);
+			ensure!(Self::ensure_member(who.clone(),collective_id), Error::<T>::MemberDoesNotExist);
 
 			let uid = Self::votes_count();
 		
@@ -864,6 +887,28 @@ pub mod pallet {
 				},
 				Err(_) => Err(Error::<T>::NotAllowedToManageMembership.into()),
 			}
+		}
+
+		#[pallet::call_index(9)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
+		pub fn distribute_collective_funds(origin: OriginFor<T>,
+		collective_id: <T as pallet_carbon_credits::Config>::CollectiveId) -> DispatchResult {
+			let manager = ensure_signed(origin)?;
+			ensure!(Self::get_collective(collective_id).is_some(), Error::<T>::CollectiveDoesNotExist);
+			let managers = Managers::<T>::get(collective_id.clone());
+	
+			match managers.binary_search(&manager) {
+				Ok(_) => {
+					//let _project_id = pallet_carbon_credits::Pallet::<T>::create_project(
+					//	manager,
+					//	params,
+					//	Some(<T as pallet_carbon_credits::Config>::CollectiveId::from(collective_id.into())),
+					//)?;					
+					Ok(())
+				},
+				Err(_) => Err(Error::<T>::NotAllowedToDistributeFunds.into()),
+			}
+			
 		}
 	}
 
@@ -988,6 +1033,23 @@ pub mod pallet {
 		/// The account ID of the ForestaCollectives pallet
 		pub fn account_id() -> T::AccountId {
 			<T as pallet::Config>::PalletId::get().into_account_truncating()
+		}
+
+		pub fn ensure_member(who: T::AccountId, collective_id: <T as pallet_carbon_credits::Config>::CollectiveId) -> bool {
+			let members = Members::<T>::get(collective_id);
+			let check: bool;
+
+			match members.binary_search(&who) {
+				Ok(_) => check = true,
+				Err(_index) => check = false,
+			}
+			
+			check
+		}
+
+		pub fn add_royalty_recipient() -> DispatchResult {
+
+			Ok(())
 		}
 
 	}

@@ -38,12 +38,15 @@ frame-system-rpc-runtime-api = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-membership = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-preimage = { workspace = true }
 pallet-root-testing = { workspace = true }
+pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-treasury = { workspace = true }
 pallet-tx-pause = { workspace = true }
 pallet-utility = { workspace = true }
 sp-api = { workspace = true }
@@ -139,12 +142,15 @@ std = [
 	"pallet-membership/std",
 	"pallet-migrations/std",
 	"pallet-proxy/std",
+	"pallet-preimage/std",
 	"pallet-root-testing/std",
+	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-treasury/std",
 	"pallet-tx-pause/std",
 	"pallet-utility/std",
 	"pallet-xcm/std",
@@ -208,6 +214,7 @@ runtime-benchmarks = [
 	"pallet-cc-authorities-noting/runtime-benchmarks",
 	"pallet-migrations/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
 	"pallet-sudo/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tx-pause/runtime-benchmarks",
@@ -242,6 +249,7 @@ try-runtime = [
 	"pallet-maintenance-mode/try-runtime",
 	"pallet-migrations/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-preimage/try-runtime",
 	"pallet-root-testing/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-sudo/try-runtime",

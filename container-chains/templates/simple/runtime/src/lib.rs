@@ -42,8 +42,11 @@ use {
         pallet_prelude::DispatchResult,
         parameter_types,
         traits::{
+            fungible::HoldConsideration,
+            fungibles,
+            tokens::{PayFromAccount, UnityAssetBalanceConversion},
             ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Contains, InsideBoth,
-            InstanceFilter, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
+            InstanceFilter,EqualPrivilegeOnly, LinearStoragePrice, OffchainWorker, OnFinalize, OnIdle, OnInitialize, OnRuntimeUpgrade,
             AsEnsureOriginWithArg
         },
         weights::{
@@ -54,7 +57,7 @@ use {
             ConstantMultiplier, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
             WeightToFeePolynomial,
         },
-        PalletId,
+        PalletId,BoundedVec,
     },
     frame_system::{
         limits::{BlockLength, BlockWeights},
@@ -80,7 +83,6 @@ use {
 use sp_runtime::SaturatedConversion;
 use orml_traits::parameter_type_with_key;
 use pallet_acurast_fulfillment_receiver::Fulfillment;
-
 
 pub mod xcm_config;
 
@@ -403,6 +405,7 @@ parameter_types! {
 	pub const MinPricePerUnit : u32 = 1;
 	pub const MaxPaymentFee : Percent = Percent::from_percent(10);
 	pub const MaxPurchaseFee : Balance = 10 * UNIT;
+    pub const MaxCollectiveFee : Percent = Percent::from_percent(5);
 	#[derive(Clone, scale_info::TypeInfo)]
 	pub const MaxValidators : u32 = 10;
 	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
@@ -417,6 +420,7 @@ parameter_types! {
 	pub const MaxPayoutsToStore : u32 = 1000;
 	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
 	pub const MaxOpenOrdersPerUser : u32 = 10;
+    pub const MaxMembersC: u32 = 1000;
 }
 
 impl pallet_dex::Config for Runtime {
@@ -436,10 +440,12 @@ impl pallet_dex::Config for Runtime {
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type MaxPaymentFee = MaxPaymentFee;
 	type MaxPurchaseFee = MaxPurchaseFee;
+    type MaxCollectiveFee = MaxCollectiveFee;
 	type MaxAddressLen = MaxAddressLen;
 	type MaxOrderIds = MaxOrderIds;
 	type MaxPayoutsToStore = MaxPayoutsToStore;
 	type MaxOpenOrdersPerUser = MaxOpenOrdersPerUser;
+    type MaxMembersPerCollective = MaxMembersC;
 	type WeightInfo = ();
 }
 
@@ -601,6 +607,52 @@ impl pallet_uniques::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+}
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+parameter_types! {
+	pub const MaxScheduledPerBlock: u32 = 50;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub const MaxScheduledPerBlock: u32 = 200;
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type Preimages = Preimage;
+}
+
+parameter_types! {
+	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
+	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageHoldReason: RuntimeHoldReason = RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
+}
+
+impl pallet_preimage::Config for Runtime {
+	type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type ManagerOrigin = EnsureRoot<AccountId>;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+	>;
+}
+
 
 parameter_types! {
 	pub const MaxKeyLength : u32 = 1024;
@@ -650,12 +702,15 @@ parameter_types! {
     pub const MaxString: u32 = 64;
     pub const MaxNumCollectives: u32 = 200;
     pub const MaxVotesPerBlock: u32 = 16;
+    pub const MaxMembers: u32 = 1000;
     pub const VoteDuration: BlockNumber = 200;
 }
 
 impl pallet_foresta_collectives::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_foresta_collectives::weights::SubstrateWeight<Runtime>;
+    type Currency = Tokens;
+	type CurrencyBalance = u128;
     type KYCProvider = KYCPallet;
     type MaxNumCollectives = MaxNumCollectives;
     type ProposalId = u32;
@@ -664,6 +719,7 @@ impl pallet_foresta_collectives::Config for Runtime {
     type MaxNumManagers = Managers;
     type MaxStringLength = MaxString;
     type MaxConcurrentVotes = MaxVotesPerBlock;
+    type MaxMembersPerCollective = MaxMembers;
     type VotingDuration = VoteDuration;
     type ForceOrigin = EnsureRoot<AccountId>;
 }
@@ -682,6 +738,60 @@ impl pallet_membership::Config for Runtime {
 	type SwapOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = ();
 }
+
+use sp_runtime::traits::IdentityLookup;
+
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 2000 * CENTS;
+	pub const ProposalBondMaximum: Balance = 1000 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 6 * DAYS;
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub const TipCountdown: BlockNumber = DAYS;
+	pub const TipFindersFee: Percent = Percent::from_percent(20);
+	pub const TipReportDepositBase: Balance = 100 * CENTS;
+	pub const DataDepositPerByte: Balance = CENTS;
+	pub const MaxApprovals: u32 = 100;
+	pub const MaxAuthorities: u32 = 100_000;
+	pub const MaxKeys: u32 = 10_000;
+	pub const MaxPeerInHeartbeats: u32 = 10_000;
+	pub const MaxPeerDataEncodingSize: u32 = 1_000;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
+	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+
+}
+
+impl pallet_treasury::Config for Runtime {
+	type PalletId = TreasuryPalletId;
+	type Currency = Balances;
+	type ApproveOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type RejectOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type RuntimeEvent = RuntimeEvent;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type ProposalBondMaximum = ProposalBondMaximum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = ();
+	type BurnDestination = ();
+	type MaxApprovals = MaxApprovals;
+	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
+	type SpendFunds = ();
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+	type AssetKind = ();
+	type Beneficiary = Self::AccountId;
+
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type BalanceConverter = UnityAssetBalanceConversion;
+	type PayoutPeriod = PayoutSpendPeriod;
+	#[cfg(feature = "runtime-benchmarks")]
+	/// TODO: fix this benchmark helper in next release. We can proceed with the
+	/// empty implementation. type BenchmarkHelper =
+	/// polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = ();
+}
+
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
@@ -1091,6 +1201,9 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment = 11,
         Assets: pallet_assets = 12,
         Membership: pallet_membership::{Pallet, Call, Storage, Config<T>, Event<T>} = 13,
+        Scheduler: pallet_scheduler = 15,
+		Preimage: pallet_preimage = 16,
+        Treasury: pallet_treasury = 17,
 
         // orml pallets
 		Tokens: orml_tokens = 41,

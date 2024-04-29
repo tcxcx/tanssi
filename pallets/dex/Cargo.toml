@@ -23,9 +23,11 @@ frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 orml-traits = { workspace = true }
+pallet-uniques = { workspace = true }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 orml-tokens = { workspace = true }
 pallet-carbon-credits = { package = 'pallet-carbon-credits', path = '../carbon-credits', default-features = false }
+pallet-membership = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 
 # Local dependencies
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
@@ -46,6 +48,8 @@ std = [
 	"scale-info/std",
 	"sp-std/std",
 	"pallet-balances/std",
+	"pallet-uniques/std",
+	"pallet-membership/std",
 	"primitives/std",
 	"orml-tokens/std",
 	"pallet-carbon-credits/std",

@@ -59,6 +59,7 @@ pub mod pallet {
 		Percent, Saturating,
 	};
 	use sp_std::fmt::Debug;
+	use super::*;
 
 	#[pallet::pallet]
 
@@ -66,7 +67,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_carbon_credits::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
@@ -124,6 +125,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxPurchaseFee: Get<CurrencyBalanceOf<Self>>;
 
+		#[pallet::constant]
+		type MaxCollectiveFee: Get<Percent>;
+
 		/// The DEX pallet id
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
@@ -148,6 +152,8 @@ pub mod pallet {
 
 		/// The maximum open orders allowed for a user
 		type MaxOpenOrdersPerUser: Get<u32> + TypeInfo + Clone + Debug + PartialEq;
+
+		type MaxMembersPerCollective: Get<u32>;
 
 		/// KYC provider config
 		type KYCProvider: Contains<Self::AccountId>;
@@ -204,6 +210,22 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn seller_receivables)]
 	pub type SellerReceivables<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, CurrencyBalanceOf<T>>;
+
+	// Collective Fees on each transaction
+	#[pallet::storage]
+	#[pallet::getter(fn collective_fees)]
+	pub type CollectiveFees<T: Config> = StorageValue<_, Percent, ValueQuery>;
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn collective_receivables)]
+	pub type CollectiveReceivables<T: Config> =
+		StorageMap<_, Blake2_128Concat, <T as pallet_carbon_credits::Config>::CollectiveId, CurrencyBalanceOf<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn member_receivables)]
+	pub type MemberReceivables<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, CurrencyBalanceOf<T>>;
 
 	#[pallet::storage]
@@ -362,6 +384,10 @@ pub mod pallet {
 		UserOpenOrderUnitsLimtNotFound,
 		/// Min validators cannot be zero
 		MinValidatorsCannotBeZero,
+		/// CannotSetMoreThanMaxCollectiveFee
+		CannotSetMoreThanMaxCollectiveFee,
+		/// NotEnoughFunds
+		NotEnoughFunds,
 	}
 
 	#[pallet::hooks]
@@ -450,7 +476,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Create a new sell order for given `asset_id`
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::create_sell_order())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_sell_order())]
 		pub fn create_sell_order(
 			origin: OriginFor<T>,
 			asset_id: AssetIdOf<T>,
@@ -501,7 +527,7 @@ pub mod pallet {
 
 		/// Cancel an existing sell order with `order_id`
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::cancel_sell_order())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::cancel_sell_order())]
 		pub fn cancel_sell_order(origin: OriginFor<T>, order_id: OrderId) -> DispatchResult {
 			let seller = ensure_signed(origin.clone())?;
 
@@ -526,7 +552,7 @@ pub mod pallet {
 		/// Buy `units` of `asset_id` from the given `order_id`
 		/// This will be called by one of the approved validators when an order is created
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::buy_order())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::buy_order())]
 		pub fn create_buy_order(
 			origin: OriginFor<T>,
 			order_id: OrderId,
@@ -660,9 +686,9 @@ pub mod pallet {
 		/// Force set PaymentFees value
 		/// Can only be called by ForceOrigin
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::force_set_payment_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_payment_fee())]
 		pub fn force_set_payment_fee(origin: OriginFor<T>, payment_fee: Percent) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			ensure!(
 				payment_fee <= T::MaxPaymentFee::get(),
 				Error::<T>::CannotSetMoreThanMaxPaymentFee
@@ -674,12 +700,12 @@ pub mod pallet {
 		/// Force set PurchaseFee value
 		/// Can only be called by ForceOrigin
 		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_set_purchase_fee(
 			origin: OriginFor<T>,
 			purchase_fee: CurrencyBalanceOf<T>,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			ensure!(
 				purchase_fee <= T::MaxPurchaseFee::get(),
 				Error::<T>::CannotSetMoreThanMaxPurchaseFee
@@ -691,7 +717,7 @@ pub mod pallet {
 		/// Buy `units` of `asset_id` from the given `order_id`
 		/// This will be called by one of the approved validators when an order is created
 		#[pallet::call_index(5)]
-		#[pallet::weight(T::WeightInfo::buy_order())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::buy_order())]
 		pub fn validate_buy_order(
 			origin: OriginFor<T>,
 			order_id: BuyOrderId,
@@ -835,12 +861,12 @@ pub mod pallet {
 		/// Add a new account to the list of authorised Accounts
 		/// The caller must be from a permitted origin
 		#[pallet::call_index(6)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_add_validator_account(
 			origin: OriginFor<T>,
 			account_id: T::AccountId,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			// add the account_id to the list of authorized accounts
 			ValidatorAccounts::<T>::try_mutate(|account_list| -> DispatchResult {
 				ensure!(
@@ -860,12 +886,12 @@ pub mod pallet {
 
 		/// Remove an account from the list of authorised accounts
 		#[pallet::call_index(7)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_remove_validator_account(
 			origin: OriginFor<T>,
 			account_id: T::AccountId,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			// remove the account_id from the list of authorized accounts if already exists
 			ValidatorAccounts::<T>::try_mutate(|account_list| -> DispatchResult {
 				if let Some(index) = account_list.iter().position(|a| a == &account_id) {
@@ -879,12 +905,12 @@ pub mod pallet {
 
 		/// Set the minimum validators required to validator a payment
 		#[pallet::call_index(8)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_set_min_validations(
 			origin: OriginFor<T>,
 			min_validators: u32,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			ensure!(min_validators > 0, Error::<T>::MinValidatorsCannotBeZero);
 			MinPaymentValidations::<T>::set(min_validators);
 			Ok(())
@@ -913,12 +939,12 @@ pub mod pallet {
 		///
 		/// Emits an `Event::SellerPayoutAuthoritySet` event on success.
 		#[pallet::call_index(9)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_set_seller_payout_authority(
 			origin: OriginFor<T>,
 			authority: T::AccountId,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			SellerPayoutAuthority::<T>::set(Some(authority.clone()));
 			Self::deposit_event(Event::SellerPayoutAuthoritySet { authority });
 			Ok(())
@@ -947,7 +973,7 @@ pub mod pallet {
 		///
 		/// Emits an `Event::SellerPayoutPreferenceSet` event on success.
 		#[pallet::call_index(10)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn set_seller_payout_preference(
 			origin: OriginFor<T>,
 			preference: Option<SellerPayoutPreferenceOf<T>>,
@@ -995,7 +1021,7 @@ pub mod pallet {
 		///
 		/// Emits an `Event::SellerPayoutExecuted` event on success.
 		#[pallet::call_index(11)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn record_payment_to_seller(
 			origin: OriginFor<T>,
 			seller: T::AccountId,
@@ -1022,13 +1048,13 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(12)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_set_open_order_allowed_limits(
 			origin: OriginFor<T>,
 			level: UserLevel,
 			limit: AssetBalanceOf<T>,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			UserOpenOrderUnitsAllowed::<T>::set(level.clone(), Some(limit));
 			Self::deposit_event(Event::UserOpenOrderUnitsLimitUpdated { level, limit });
 			Ok(())
@@ -1036,14 +1062,54 @@ pub mod pallet {
 
 		/// Set the minimum validators required to validator a payment
 		#[pallet::call_index(13)]
-		#[pallet::weight(T::WeightInfo::force_set_purchase_fee())]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn force_clear_buy_orders_per_user(
 			origin: OriginFor<T>,
 			user: T::AccountId,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
 			BuyOrdersByUser::<T>::remove(user.clone());
 			Self::deposit_event(Event::BuyOrdersByUserCleared { user });
+			Ok(())
+		}
+
+		/// Force set PurchaseFee value
+		/// Can only be called by ForceOrigin
+		#[pallet::call_index(14)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
+		pub fn force_set_collective_fee(
+			origin: OriginFor<T>,
+			collective_fee: Percent,
+		) -> DispatchResult {
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
+			ensure!(
+				collective_fee <= T::MaxCollectiveFee::get(),
+				Error::<T>::CannotSetMoreThanMaxCollectiveFee
+			);
+			CollectiveFees::<T>::set(collective_fee);
+			Ok(())
+		}
+
+		#[pallet::call_index(14)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
+		pub fn distribute_collective_funds(
+			origin: OriginFor<T>,
+			collective_id: <T as pallet_carbon_credits::Config>::CollectiveId,
+			members: BoundedVec<T::AccountId, T::MaxMembersPerCollective>,
+			amount_per_member: CurrencyBalanceOf<T>
+		) -> DispatchResult {
+			<T as pallet::Config>::ForceOrigin::ensure_origin(origin)?;
+
+			let num_payments = members.len();
+
+			let num_payments_u128: u128 = num_payments.try_into().map_err(|_| Error::<T>::ArithmeticError)?;
+
+			let total_payment = amount_per_member
+					.checked_mul(num_payments_u128)
+					.ok_or(Error::<T>::ArithmeticError)?;
+			
+			ensure!(total_payment <= CollectiveReceivables::<T>::get(), Error::<T>::NotEnoughFunds);
+
 			Ok(())
 		}
 	}
@@ -1051,7 +1117,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// The account ID of the CarbonCredits pallet
 		pub fn account_id() -> T::AccountId {
-			T::PalletId::get().into_account_truncating()
+			<T as pallet::Config>::PalletId::get().into_account_truncating()
 		}
 
 		/// Checks if the given account_id is part of authorized account list
@@ -1066,7 +1132,7 @@ pub mod pallet {
 
 		/// Checks if given account is kyc approved
 		pub fn check_kyc_approval(account_id: &T::AccountId) -> DispatchResult {
-			if !T::KYCProvider::contains(account_id) {
+			if !<T as pallet::Config>::KYCProvider::contains(account_id) {
 				Err(Error::<T>::KYCAuthorisationFailed.into())
 			} else {
 				Ok(())

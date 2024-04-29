@@ -151,6 +151,7 @@ impl pallet_carbon_credits::Config for Test {
 	type MinProjectId = ConstU32<1000>;
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
+	type MaxProjectsPerCollective = ConstU32<100>;
 	type WeightInfo = ();
 }
 
@@ -232,6 +233,7 @@ parameter_types! {
 	pub const MinPricePerUnit : u32 = 1;
 	pub const MaxPaymentFee : Percent = Percent::from_percent(50);
 	pub const MaxPurchaseFee : u128 = 100u128;
+	pub const MaxCollectiveFee : Percent = Percent::from_percent(10);
 	#[derive(Clone, scale_info::TypeInfo)]
 	pub const MaxValidators : u32 = 10;
 	#[derive(Clone, scale_info::TypeInfo, Debug, PartialEq)]
@@ -268,6 +270,7 @@ impl pallet_dex::Config for Test {
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type MaxPaymentFee = MaxPaymentFee;
 	type MaxPurchaseFee = MaxPurchaseFee;
+	type MaxCollectiveFee = MaxCollectiveFee;
 	type MaxPayoutsToStore = MaxPayoutsToStore;
 	type WeightInfo = ();
 }
@@ -312,16 +315,17 @@ parameter_types! {
 impl pallet_foresta_collectives::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
+	type Currency = Tokens;
+	type CurrencyBalance = u128;
     type KYCProvider = KYCMembership;
-    type CollectiveId = u32;
 	type ProposalId = u32;
 	type VoteId = u32;
 	type PalletId = ForestaCollectivesPalletId;
     type MaxNumManagers = ConstU32<5>;
     type MaxStringLength = ConstU32<64>;
     type MaxConcurrentVotes = ConstU32<5>;
-    type MaxProjectsPerCollective = ConstU32<5>;
 	type MaxNumCollectives = ConstU32<20>;
+	type MaxMembersPerCollective = ConstU32<1000>;
     type VotingDuration = blocknumbers;
     type ForceOrigin =  frame_system::EnsureRoot<u64>;
 }

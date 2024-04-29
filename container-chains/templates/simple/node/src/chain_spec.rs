@@ -206,6 +206,7 @@ fn testnet_genesis(
         transaction_payment: Default::default(),
         tx_pause: Default::default(),
         assets: Default::default(),
+        treasury: Default::default(),
         membership: container_chain_template_simple_runtime::MembershipConfig {
 			members: [].to_vec().try_into().unwrap(),
 			phantom: Default::default(),
