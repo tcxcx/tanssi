@@ -617,7 +617,7 @@ impl pallet_general_storage::Config for Runtime {
 parameter_types! {
     pub const DepositPerItem: Balance = deposit(1, 0);
     pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
-    pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(10);
+    pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(0);
     pub const MaxDelegateDependencies: u32 = 32;
     pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
 }
