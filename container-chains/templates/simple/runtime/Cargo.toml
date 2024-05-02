@@ -90,6 +90,9 @@ frame-try-runtime = { workspace = true, optional = true }
 	# Substrate
 pallet-assets = { workspace = true }
 pallet-uniques = { workspace = true }
+pallet-contracts = { workspace = true }
+pallet-contracts-primitives = { workspace = true }
+
 
 	# Custom Pallets
 pallet-carbon-credits = { workspace = true }
@@ -186,6 +189,8 @@ std = [
 	"orml-traits/std",
 	"pallet-acurast-fulfillment-receiver/std",
 	"acurast-p256-crypto/std",
+	"pallet-contracts/std",
+	"pallet-contracts-primitives/std"
 ]
 
 # Allow to print logs details (no wasm:stripped)
