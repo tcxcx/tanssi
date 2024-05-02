@@ -62,7 +62,6 @@ use {
         EnsureRoot,
     },
     nimbus_primitives::{NimbusId, SlotBeacon},
-    pallet_contracts::weights::WeightInfo,
     pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier},
     parity_scale_codec::{Decode, Encode},
     scale_info::TypeInfo,
@@ -1187,7 +1186,7 @@ construct_runtime!(
         RootTesting: pallet_root_testing = 100,
         AsyncBacking: pallet_async_backing::{Pallet, Storage} = 110,
         Contracts: pallet_contracts = 111,
-        
+
         // Foresta pallets
         CarbonCredits: pallet_carbon_credits::{Pallet, Call, Storage, Event<T>} = 81,
         CarbonCreditsPools: pallet_carbon_credits_pool::{Pallet, Call, Storage, Event<T>} = 82,
