@@ -237,9 +237,10 @@ pub const MICROUNIT: Balance = 1_000_000;
 
 pub const STORAGE_BYTE_FEE: Balance = 100 * MICROUNIT * SUPPLY_FACTOR;
 
-pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    items as Balance * 100 * MILLIUNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+const fn deposit(items: u32, bytes: u32) -> Balance {
+	(items as Balance * UNIT + (bytes as Balance) * (5 * MILLIUNIT / 100)) / 10
 }
+
 
 /// The existential deposit. Set to 1/10 of the Connected Relay Chain.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
@@ -378,7 +379,7 @@ impl pallet_balances::Config for Runtime {
     type MaxFreezes = ConstU32<0>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
-    type MaxHolds = ConstU32<0>;
+    type MaxHolds = ConstU32<1>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
@@ -613,13 +614,23 @@ impl pallet_general_storage::Config for Runtime {
     type DepositPerByte = DepositPerByte;
 }
 
+fn schedule<T: pallet_contracts::Config>() -> pallet_contracts::Schedule<T> {
+	pallet_contracts::Schedule {
+		limits: pallet_contracts::Limits {
+			runtime_memory: 1024 * 1024 * 1024,
+			..Default::default()
+		},
+		..Default::default()
+	}
+}
+
 // Configure the pallet-contracts
 parameter_types! {
     pub const DepositPerItem: Balance = deposit(1, 0);
-    pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
-    pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(0);
-    pub const MaxDelegateDependencies: u32 = 32;
-    pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+	pub Schedule: pallet_contracts::Schedule<Runtime> = schedule::<Runtime>();
+	pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+	pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(0);
+	pub const MaxDelegateDependencies: u32 = 32;
 }
 
 /// Codes using the randomness functionality cannot be uploaded. Neither can contracts
