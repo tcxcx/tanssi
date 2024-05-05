@@ -149,6 +149,8 @@ impl pallet_carbon_credits::Config for Test {
 	type MinProjectId = ConstU32<1000>;
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
+	type CollectiveId = u32;
+	type MaxRetirementRecords = ConstU32<100>;
 	type WeightInfo = ();
 }
 

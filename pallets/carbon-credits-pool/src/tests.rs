@@ -168,7 +168,7 @@ pub fn create_project_and_mint<T: Config>(
 
 	assert_ok!(CarbonCredits::create(
 		RawOrigin::Signed(originator_account).into(),
-		creation_params
+		creation_params,Some(1u32)
 	));
 
 	// approve project so minting can happen
@@ -429,13 +429,21 @@ fn retire_works() {
 			CarbonCreditPools::retire(
 				RawOrigin::Signed(authorised_account_one).into(),
 				pool_id,
-				10_000
+				10_000,
+				Default::default(),
+				Default::default(),
+				Default::default(),
+				Default::default()
 			),
 			sp_runtime::TokenError::FundsUnavailable
 		);
 
 		assert_noop!(
-			CarbonCreditPools::retire(RawOrigin::Signed(authorised_account_one).into(), pool_id, 0),
+			CarbonCreditPools::retire(RawOrigin::Signed(authorised_account_one).into(), pool_id, 0,
+			Default::default(),
+			Default::default(),
+			Default::default(),
+			Default::default()),
 			Error::<Test>::InvalidAmount
 		);
 
@@ -443,7 +451,11 @@ fn retire_works() {
 		assert_ok!(CarbonCreditPools::retire(
 			RawOrigin::Signed(authorised_account_one).into(),
 			pool_id,
-			90
+			90,
+			Default::default(),
+			Default::default(),
+			Default::default(),
+			Default::default()
 		));
 
 		// assert_eq!(Assets::total_issuance(asset_id), 0);

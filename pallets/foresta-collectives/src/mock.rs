@@ -150,6 +150,8 @@ impl pallet_carbon_credits::Config for Test {
 	type MinProjectId = ConstU32<1000>;
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
+	type CollectiveId = u32;
+	type MaxRetirementRecords = ConstU32<100>;
 	type WeightInfo = ();
 }
 
@@ -208,9 +210,13 @@ impl CarbonCreditsValidator for DummyValidator {
 		_group_id: Self::GroupId,
 		_amount: Self::Amount,
 		_retirement_reason: Option<Vec<u8>>,
+		_ipfs_hash: Option<Vec<u8>>,
+        _ipns_link: Option<Vec<u8>>,
+		_image_link: Option<Vec<u8>>
 	) -> DispatchResult {
 		Ok(())
 	}
+
 }
 
 pub struct MockKycProvider;
@@ -320,6 +326,7 @@ impl pallet_foresta_collectives::Config for Test {
     type MaxStringLength = ConstU32<64>;
     type MaxConcurrentVotes = ConstU32<5>;
     type MaxProjectsPerCollective = ConstU32<5>;
+	type MaxNumCollectives = ConstU32<10>;
     type VotingDuration = blocknumbers;
     type ForceOrigin =  frame_system::EnsureRoot<u64>;
 }

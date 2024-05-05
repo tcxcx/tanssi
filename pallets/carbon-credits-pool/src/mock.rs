@@ -137,7 +137,6 @@ impl pallet_carbon_credits::Config for Test {
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
 	type ItemId = u32;
 	type ProjectId = u32;
-	type MaxCoordinatesLength = ConstU32<8>;
 	type GroupId = u32;
 	type KYCProvider = KYCMembership;
 	type MarketplaceEscrow = MarketplaceEscrowAccount;
@@ -146,11 +145,14 @@ impl pallet_carbon_credits::Config for Test {
 	type MaxGroupSize = MaxGroupSize;
 	type MaxIpfsReferenceLength = ConstU32<20>;
 	type MaxLongStringLength = ConstU32<100>;
+	type MaxCoordinatesLength = ConstU32<8>;
 	type MaxRoyaltyRecipients = ConstU32<5>;
 	type MaxShortStringLength = ConstU32<20>;
 	type MinProjectId = ConstU32<1000>;
 	type NFTHandler = Uniques;
 	type PalletId = CarbonCreditsPalletId;
+	type CollectiveId = u32;
+	type MaxRetirementRecords = ConstU32<100>;
 	type WeightInfo = ();
 }
 

@@ -1,4 +1,4 @@
-use crate::{mock::*, Config, Error, VoteType, Vote, VoteStatus, MembersCount};
+use crate::{mock::*, Config, Error, VoteType, Vote, VoteStatus, MembersCount, VoteCategory, VotePriority};
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{tokens::fungibles::{metadata::Inspect as MetadataInspect, Inspect}, OnFinalize, OnInitialize},
@@ -164,7 +164,7 @@ pub fn create_project<T: Config>(
 
 	assert_ok!(CarbonCredits::create(
 		RawOrigin::Signed(originator_account).into(),
-		creation_params
+		creation_params,Some(1u32)
 	));
 
 }
@@ -320,7 +320,7 @@ fn it_works_for_init_project_approval_vote() {
 		// init project approval
 
 		assert_ok!(ForestaCollectives::init_project_approval_removal(RawOrigin::Signed(member).into(),collective_id,
-		project_id,VoteType::ProjectApproval));
+		project_id,VoteType::ProjectApproval, VoteCategory::WildlifeProtection,VotePriority::Medium));
 
 		let mut vote = Vote::<Test> {
 			yes_votes: 0,
@@ -328,6 +328,8 @@ fn it_works_for_init_project_approval_vote() {
 			end: 101,
 			status: VoteStatus::Deciding,
 			vote_type: VoteType::ProjectApproval,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: Some(project_id)
 		};
@@ -346,6 +348,8 @@ fn it_works_for_init_project_approval_vote() {
 			end: 101,
 			status: VoteStatus::Deciding,
 			vote_type: VoteType::ProjectApproval,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: Some(project_id)
 		};
@@ -360,6 +364,8 @@ fn it_works_for_init_project_approval_vote() {
 			end: 101,
 			status: VoteStatus::Passed,
 			vote_type: VoteType::ProjectApproval,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: Some(project_id)
 		};
@@ -401,8 +407,8 @@ fn it_works_for_create_proposal() {
 		assert_ok!(ForestaCollectives::add_member(RawOrigin::Signed(manager).into(),collective_id,member2));
 
 		// member creates proposal
-		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into(),collective_id,
-		"Proposal1Hash".as_bytes().to_vec().try_into().unwrap()));
+		assert_ok!(ForestaCollectives::create_proposal(RawOrigin::Signed(member).into(),collective_id,"Title".as_bytes().to_vec().try_into().unwrap(),
+		"Proposal1Hash".as_bytes().to_vec().try_into().unwrap(),VoteCategory::WildlifeProtection,VotePriority::Medium));
 
 		let mut vote = Vote::<Test> {
 			yes_votes: 0,
@@ -410,6 +416,8 @@ fn it_works_for_create_proposal() {
 			end: 101,
 			status: VoteStatus::Deciding,
 			vote_type: VoteType::Proposal,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: None
 		};
@@ -428,6 +436,8 @@ fn it_works_for_create_proposal() {
 			end: 101,
 			status: VoteStatus::Deciding,
 			vote_type: VoteType::Proposal,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: None
 		};
@@ -442,6 +452,8 @@ fn it_works_for_create_proposal() {
 			end: 101,
 			status: VoteStatus::Passed,
 			vote_type: VoteType::Proposal,
+			category: VoteCategory::WildlifeProtection,
+			priority: VotePriority::Medium,
 			collective_id: Some(collective_id),
 			project_id: None
 		};
