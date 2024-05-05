@@ -889,27 +889,6 @@ pub mod pallet {
 			}
 		}
 
-		#[pallet::call_index(9)]
-		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_collective())]
-		pub fn distribute_collective_funds(origin: OriginFor<T>,
-		collective_id: <T as pallet_carbon_credits::Config>::CollectiveId) -> DispatchResult {
-			let manager = ensure_signed(origin)?;
-			ensure!(Self::get_collective(collective_id).is_some(), Error::<T>::CollectiveDoesNotExist);
-			let managers = Managers::<T>::get(collective_id.clone());
-	
-			match managers.binary_search(&manager) {
-				Ok(_) => {
-					//let _project_id = pallet_carbon_credits::Pallet::<T>::create_project(
-					//	manager,
-					//	params,
-					//	Some(<T as pallet_carbon_credits::Config>::CollectiveId::from(collective_id.into())),
-					//)?;					
-					Ok(())
-				},
-				Err(_) => Err(Error::<T>::NotAllowedToDistributeFunds.into()),
-			}
-			
-		}
 	}
 
 	impl<T:Config> Pallet<T> {
@@ -1045,11 +1024,6 @@ pub mod pallet {
 			}
 			
 			check
-		}
-
-		pub fn add_royalty_recipient() -> DispatchResult {
-
-			Ok(())
 		}
 
 	}
