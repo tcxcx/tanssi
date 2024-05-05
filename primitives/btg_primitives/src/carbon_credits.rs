@@ -1,5 +1,7 @@
 use super::*;
 use frame_support::{pallet_prelude::Get, BoundedVec};
+use codec::{EncodeLike};
+
 pub type IssuanceYear = u16;
 use frame_support::pallet_prelude::DispatchResult;
 use sp_std::{fmt::Debug, vec::Vec};
@@ -181,8 +183,14 @@ pub trait CarbonCreditsValidator {
 	/// AssetId type representing the asset
 	type AssetId: Clone + PartialEq + Debug;
 
+	type CollectiveId: Clone + PartialEq + Debug + Encode + Decode + MaxEncodedLen + TypeInfo + Eq + EncodeLike;
+
 	/// Returns ProjectId and GroupId if the given AssetId represents a CarbonCredit Project
-	fn get_project_details(asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)>;
+	fn project_details(asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)>;
+
+	fn get_collective_id(project_id: &Self::ProjectId) -> Self::CollectiveId;
+
+	/// Get collective id
 
 	/// Retires credits with given details
 	fn retire_credits(

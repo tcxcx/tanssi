@@ -208,8 +208,14 @@ impl CarbonCreditsValidator for DummyValidator {
 	type Address = AccountId;
 	type AssetId = u32;
 	type GroupId = u32;
-	fn get_project_details(_asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)> {
+	type CollectiveId = u32;
+
+	fn project_details(_asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)> {
 		Some((0, 0))
+	}
+
+	fn get_collective_id(_project_id: &Self::ProjectId) -> Self::CollectiveId {
+		1
 	}
 
 	fn retire_credits(
@@ -280,6 +286,7 @@ impl pallet_dex::Config for Test {
 	type MaxPurchaseFee = MaxPurchaseFee;
 	type MaxCollectiveFee = MaxCollectiveFee;
 	type MaxPayoutsToStore = MaxPayoutsToStore;
+	type MaxMembersPerCollective = ConstU32<1000>;
 	type WeightInfo = ();
 }
 

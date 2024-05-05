@@ -10,7 +10,6 @@ members = [
 	"primitives/*",
 	"runtime/dancebox",
 	"runtime/flashbox",
-	"contracts/*",
 ]
 resolver = "2"
 

@@ -67,7 +67,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_carbon_credits::Config {
+	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
@@ -221,7 +221,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn collective_receivables)]
 	pub type CollectiveReceivables<T: Config> =
-		StorageMap<_, Blake2_128Concat, <T as pallet_carbon_credits::Config>::CollectiveId, CurrencyBalanceOf<T>>;
+		StorageMap<_, Blake2_128Concat, CollectiveIdOf<T>, CurrencyBalanceOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn member_receivables)]
@@ -388,6 +388,10 @@ pub mod pallet {
 		CannotSetMoreThanMaxCollectiveFee,
 		/// NotEnoughFunds
 		NotEnoughFunds,
+		/// InvalidPoolId
+		InvalidPoolId,
+		/// ProjectNotFound
+		ProjectNotFound,
 	}
 
 	#[pallet::hooks]
@@ -486,7 +490,7 @@ pub mod pallet {
 			let seller = ensure_signed(origin.clone())?;
 			Self::check_kyc_approval(&seller)?;
 			// ensure the asset_id can be listed
-			let (project_id, group_id) = T::AssetValidator::get_project_details(&asset_id)
+			let (project_id, group_id) = T::AssetValidator::project_details(&asset_id)
 				.ok_or(Error::<T>::AssetNotPermitted)?;
 
 			// ensure minimums are satisfied
@@ -580,7 +584,7 @@ pub mod pallet {
 				ensure!(units <= order.units, Error::<T>::OrderUnitsOverflow);
 
 				// get the projectId and groupId for events
-				let (project_id, group_id) = T::AssetValidator::get_project_details(&asset_id)
+				let (project_id, group_id) = T::AssetValidator::project_details(&asset_id)
 					.ok_or(Error::<T>::AssetNotPermitted)?;
 
 				// reduce the buy_order units from total volume
@@ -600,9 +604,14 @@ pub mod pallet {
 				let payment_fee = PaymentFees::<T>::get().mul_ceil(required_currency);
 				let purchase_fee: u128 =
 					PurchaseFees::<T>::get().try_into().map_err(|_| Error::<T>::ArithmeticError)?;
+				
+				let collective_share = CollectiveFees::<T>::get().mul_ceil(required_currency);
 
-				let total_fee =
+				let mut total_fee =
 					payment_fee.checked_add(purchase_fee).ok_or(Error::<T>::OrderUnitsOverflow)?;
+				
+				total_fee =
+					total_fee.checked_add(collective_share).ok_or(Error::<T>::OrderUnitsOverflow)?;
 
 				let total_amount = total_fee
 					.checked_add(required_currency)
@@ -659,6 +668,7 @@ pub mod pallet {
 						asset_id,
 						total_fee: total_fee.into(),
 						total_amount: total_amount.into(),
+						collective_share: collective_share.into(),
 						expiry_time,
 						payment_info: None,
 					},
@@ -789,6 +799,32 @@ pub mod pallet {
 							},
 						)?;
 
+
+						let (project_id, group_id) =
+							T::AssetValidator::project_details(&order.asset_id)
+								.ok_or(Error::<T>::AssetNotPermitted)?;
+
+
+						let collective_id: CollectiveIdOf<T> = T::AssetValidator::get_collective_id(&project_id);
+
+						//let current_receivables = CollectiveReceivables::<T>::get(collective_id);
+
+						CollectiveReceivables::<T>::try_mutate(
+							collective_id,
+							|receivable| -> DispatchResult {
+								let current_receivables =
+									receivable.get_or_insert_with(Default::default);
+								let amount_to_collective = order
+									.collective_share;
+								let new_receivables = current_receivables
+									.checked_add(&amount_to_collective)
+									.ok_or(Error::<T>::OrderUnitsOverflow)?;
+								*receivable = Some(new_receivables);
+								Ok(())
+							},
+						)?;
+
+
 						BuyOrdersByUser::<T>::try_mutate(
 							order.buyer.clone(),
 							|open_orders| -> DispatchResult {
@@ -800,7 +836,7 @@ pub mod pallet {
 
 						// get the projectId and groupId for events
 						let (project_id, group_id) =
-							T::AssetValidator::get_project_details(&order.asset_id)
+							T::AssetValidator::project_details(&order.asset_id)
 								.ok_or(Error::<T>::AssetNotPermitted)?;
 
 						Self::deposit_event(Event::BuyOrderFilled {
@@ -1090,11 +1126,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(14)]
+		#[pallet::call_index(15)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::force_set_purchase_fee())]
 		pub fn distribute_collective_funds(
 			origin: OriginFor<T>,
-			collective_id: <T as pallet_carbon_credits::Config>::CollectiveId,
+			collective_id: CollectiveIdOf<T>,
 			members: BoundedVec<T::AccountId, T::MaxMembersPerCollective>,
 			amount_per_member: CurrencyBalanceOf<T>
 		) -> DispatchResult {
@@ -1102,13 +1138,45 @@ pub mod pallet {
 
 			let num_payments = members.len();
 
+			// calculate fees
+
+			let amount_per_member_as_u128: u128 =
+			amount_per_member.try_into().map_err(|_| Error::<T>::ArithmeticError)?;
+
 			let num_payments_u128: u128 = num_payments.try_into().map_err(|_| Error::<T>::ArithmeticError)?;
 
-			let total_payment = amount_per_member
+
+			let total_payment = amount_per_member_as_u128
 					.checked_mul(num_payments_u128)
 					.ok_or(Error::<T>::ArithmeticError)?;
 			
-			ensure!(total_payment <= CollectiveReceivables::<T>::get(), Error::<T>::NotEnoughFunds);
+
+			let mut collective_receivables = CollectiveReceivables::<T>::get(collective_id.clone()).unwrap();
+
+			let collective_receivables_as_u128 : u128 = collective_receivables.try_into().map_err(|_| Error::<T>::ArithmeticError)?;
+
+			ensure!(total_payment <= collective_receivables_as_u128, Error::<T>::NotEnoughFunds);
+
+			for iter in 0..num_payments {
+				MemberReceivables::<T>::try_mutate(
+					members[iter].clone(),
+					|receivable| -> DispatchResult {
+						let current_receivables =
+							receivable.get_or_insert_with(Default::default);
+						collective_receivables = 
+							collective_receivables.checked_sub(&amount_per_member)
+							.ok_or(Error::<T>::OrderUnitsOverflow)?;
+						let new_receivables = current_receivables
+							.checked_add(&amount_per_member)
+							.ok_or(Error::<T>::OrderUnitsOverflow)?;
+						*receivable = Some(new_receivables);
+						Ok(())
+					},
+				)?;
+
+			}
+
+			CollectiveReceivables::<T>::insert(collective_id,collective_receivables);
 
 			Ok(())
 		}

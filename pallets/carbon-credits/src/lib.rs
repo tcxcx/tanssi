@@ -61,7 +61,7 @@ pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use codec::HasCompact;
+	use codec::{HasCompact,EncodeLike};
 	use frame_support::{
 		pallet_prelude::*,
 		traits::tokens::{
@@ -168,6 +168,7 @@ pub mod pallet {
 			+ sp_std::fmt::Display
 			+ sp_std::cmp::PartialOrd
 			+ sp_std::cmp::Ord
+			+ EncodeLike
 			+ CheckedAdd;
 
 		/// The CarbonCredits pallet id
@@ -659,9 +660,10 @@ impl<T: Config> primitives::CarbonCreditsValidator for Pallet<T> {
 	type Address = T::AccountId;
 	type GroupId = T::GroupId;
 	type AssetId = T::AssetId;
+	type CollectiveId = T::CollectiveId;
 	type Amount = T::Balance;
 
-	fn get_project_details(asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)> {
+	fn project_details(asset_id: &Self::AssetId) -> Option<(Self::ProjectId, Self::GroupId)> {
 		AssetIdLookup::<T>::get(asset_id)
 	}
 
@@ -673,5 +675,11 @@ impl<T: Config> primitives::CarbonCreditsValidator for Pallet<T> {
 		reason: Option<sp_std::vec::Vec<u8>>,
 	) -> DispatchResult {
 		Self::retire_carbon_credits(sender, project_id, group_id, amount, reason)
+	}
+
+	fn get_collective_id(project_id: &Self::ProjectId) -> Self::CollectiveId {
+		let project_details = Self::get_project_details(*project_id).unwrap();
+		let collective_id = project_details.collective_id.unwrap();
+		collective_id
 	}
 }

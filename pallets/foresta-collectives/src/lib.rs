@@ -235,7 +235,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		<T as pallet_carbon_credits::Config>::CollectiveId,
-		BoundedVec<T::AccountId, T::MaxMembersPerCollective>,
+		BoundedVec<T::AccountId, <T as pallet::Config>::MaxMembersPerCollective>,
 		ValueQuery,
 	>;
 
