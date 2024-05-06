@@ -7,7 +7,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/bitgreen-parachain
+// ./target/release/Foresta-parachain
 // benchmark
 // pallet
 // --chain=dev

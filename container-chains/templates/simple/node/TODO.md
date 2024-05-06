@@ -144,4 +144,4 @@ container-chains/templates/frontier/node/src/chain_spec.rs
 
 8. pallet-dex = { default-features = false, path = "../../pallets/dex" }
 
-9. primitives = { package = "bitgreen-primitives", path = "../../primitives", default-features = false } :check
+9. primitives = { package = "Foresta-primitives", path = "../../primitives", default-features = false } :check

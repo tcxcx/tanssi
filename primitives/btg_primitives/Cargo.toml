@@ -1,7 +1,7 @@
 [package]
-name = "bitgreen-primitives"
+name = "Foresta-primitives"
 version = "0.0.1"
-authors = ['BitGreen <https://www.bitgreen.org>']
+authors = ['Foresta <https://www.Foresta.org>']
 edition = "2021"
 
 [dependencies]

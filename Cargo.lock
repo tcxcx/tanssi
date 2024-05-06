@@ -3,6 +3,20 @@
 version = 3
 
 [[package]]
+name = "Foresta-primitives"
+version = "0.0.1"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "Inflector"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -944,20 +958,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 
 [[package]]
-name = "bitgreen-primitives"
-version = "0.0.1"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "bitvec"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1865,8 +1865,8 @@ dependencies = [
 name = "container-chain-template-simple-runtime"
 version = "0.1.0"
 dependencies = [
+ "Foresta-primitives",
  "acurast-p256-crypto",
- "bitgreen-primitives",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
@@ -7859,7 +7859,7 @@ dependencies = [
 name = "pallet-carbon-credits"
 version = "0.0.1"
 dependencies = [
- "bitgreen-primitives",
+ "Foresta-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -7882,7 +7882,7 @@ dependencies = [
 name = "pallet-carbon-credits-pool"
 version = "0.0.1"
 dependencies = [
- "bitgreen-primitives",
+ "Foresta-primitives",
  "bs58 0.4.0",
  "frame-benchmarking",
  "frame-support",
@@ -8097,7 +8097,7 @@ dependencies = [
 name = "pallet-dex"
 version = "0.0.1"
 dependencies = [
- "bitgreen-primitives",
+ "Foresta-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8387,7 +8387,7 @@ dependencies = [
 name = "pallet-foresta-collectives"
 version = "4.0.0-dev"
 dependencies = [
- "bitgreen-primitives",
+ "Foresta-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -8582,7 +8582,7 @@ dependencies = [
 name = "pallet-kyc"
 version = "0.0.1"
 dependencies = [
- "bitgreen-primitives",
+ "Foresta-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

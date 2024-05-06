@@ -1,6 +1,6 @@
 [package]
-authors = ["Bitgreen"]
-description = "Bitgreen DEX pallet"
+authors = ["Foresta"]
+description = "Foresta DEX pallet"
 edition = "2021"
 license = "Unlicense"
 name = "pallet-dex"
@@ -31,7 +31,7 @@ pallet-membership = { git = "https://github.com/paritytech/polkadot-sdk", branch
 
 # Local dependencies
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-primitives  = { package = 'bitgreen-primitives', path = '../../primitives/btg_primitives/', default-features = false }
+primitives  = { package = 'Foresta-primitives', path = '../../primitives/btg_primitives/', default-features = false }
 
 [dev-dependencies]
 sp-core = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }

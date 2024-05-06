@@ -1,5 +1,5 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2022 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 //! CarbonCredits pallet helper functions
 use codec::alloc::string::ToString;

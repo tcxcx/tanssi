@@ -1,8 +1,8 @@
-// This file is part of BitGreen.
-// Copyright (C) 2022 BitGreen.
+// This file is part of Foresta.
+// Copyright (C) 2022 Foresta.
 // This code is licensed under MIT license (see LICENSE.txt for details)
 //
-//! Bitgreen DEX Pallet
+//! Foresta DEX Pallet
 //! The DEX pallet allows permissionless listing and buying of carbon credits. The pallet currently
 //! only supports fixed price purchase of carbon credits from a listing. A user can create a listing
 //! with the amount of Carbon credits for sale and the price expected for each unit, this sale order
@@ -541,6 +541,7 @@ pub mod pallet {
 			ensure!(seller == order.owner, Error::<T>::InvalidOrderOwner);
 
 			// transfer assets from pallet to seller
+			// collective member ownership 
 			T::Asset::transfer(
 				order.asset_id,
 				&Self::account_id(),

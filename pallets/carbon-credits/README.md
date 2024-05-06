@@ -1,6 +1,6 @@
 # Carbon Credits Pallet
 
-The Carbon Credits pallet manages the creation and retirement of Carbon Credits units for the bitgreen runtime.
+The Carbon Credits pallet manages the creation and retirement of Carbon Credits units for the Foresta runtime.
 
 ### Background on Carbon Credits
 
