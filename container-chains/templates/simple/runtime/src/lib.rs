@@ -82,7 +82,7 @@ use {
 };
 use sp_runtime::SaturatedConversion;
 use orml_traits::parameter_type_with_key;
-use pallet_acurast_fulfillment_receiver::Fulfillment;
+// use pallet_acurast_fulfillment_receiver::Fulfillment;
 
 pub mod xcm_config;
 
@@ -1122,21 +1122,21 @@ impl OffchainWorker<BlockNumber> for MaintenanceHooks {
 }
 
 
-impl pallet_acurast_fulfillment_receiver::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type OnFulfillment = OnAcurastFulfillment;
-    type WeightInfo = ();
-}
+// impl pallet_acurast_fulfillment_receiver::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type OnFulfillment = OnAcurastFulfillment;
+//     type WeightInfo = ();
+// }
 
-pub struct OnAcurastFulfillment;
-impl pallet_acurast_fulfillment_receiver::traits::OnFulfillment<Runtime> for OnAcurastFulfillment {
-	fn on_fulfillment(
-		_from: <Runtime as frame_system::Config>::AccountId,
-		_fulfillment: Fulfillment,
-	) -> DispatchResultWithInfo<PostDispatchInfo> {
-		Ok(().into())
-	}
-}
+// pub struct OnAcurastFulfillment;
+// impl pallet_acurast_fulfillment_receiver::traits::OnFulfillment<Runtime> for OnAcurastFulfillment {
+// 	fn on_fulfillment(
+// 		_from: <Runtime as frame_system::Config>::AccountId,
+// 		_fulfillment: Fulfillment,
+// 	) -> DispatchResultWithInfo<PostDispatchInfo> {
+// 		Ok(().into())
+// 	}
+// }
 
 impl pallet_maintenance_mode::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1213,7 +1213,7 @@ construct_runtime!(
         AuthorInherent: pallet_author_inherent = 51,
 
         //Acurast
-        Acurast: pallet_acurast_fulfillment_receiver = 60,
+        // Acurast: pallet_acurast_fulfillment_receiver = 60,
 
         // XCM
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Storage, Event<T>} = 70,

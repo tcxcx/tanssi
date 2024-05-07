@@ -103,8 +103,8 @@ pallet-general-storage = { workspace = true }
 pallet-foresta-collectives = { workspace = true }
 orml-tokens = { workspace = true }
 orml-traits = { workspace = true }
-pallet-acurast-fulfillment-receiver = { git = "https://github.com/Acurast/acurast-core.git", default-features = false, branch = "staging/polkadot-v1.1.0" }
-acurast-p256-crypto = { git = "https://github.com/Acurast/acurast-core.git", default-features = false, branch = "staging/polkadot-v1.1.0" }
+# pallet-acurast-fulfillment-receiver = { git = "https://github.com/Acurast/acurast-core.git", default-features = false, branch = "staging/polkadot-v1.1.0" }
+# acurast-p256-crypto = { git = "https://github.com/Acurast/acurast-core.git", default-features = false, branch = "staging/polkadot-v1.1.0" }
 
 
 # Local Dependencies
@@ -190,8 +190,8 @@ std = [
 	"pallet-foresta-collectives/std",
 	"orml-tokens/std",
 	"orml-traits/std",
-	"pallet-acurast-fulfillment-receiver/std",
-	"acurast-p256-crypto/std",
+	# "pallet-acurast-fulfillment-receiver/std",
+	# "acurast-p256-crypto/std",
 ]
 
 # Allow to print logs details (no wasm:stripped)
